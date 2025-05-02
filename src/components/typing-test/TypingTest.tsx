@@ -20,6 +20,17 @@ interface TestResults {
   accuracy: number;
   duration: number;
   timeElapsed: number;
+  rawWpm: number;
+  correctChars: number;
+  incorrectChars: number;
+  totalKeystrokes: number;
+  replayData: KeystrokeData[];
+}
+
+interface KeystrokeData {
+  key: string;
+  timestamp: number;
+  correct: boolean;
 }
 
 export function TypingTest() {
@@ -38,9 +49,14 @@ export function TypingTest() {
     return UserPreferencesManager.getPreferences().soundEnabled;
   });
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [visibleTextStart, setVisibleTextStart] = useState(0);
+  const [typingData, setTypingData] = useState<Array<{ key: string; timestamp: number; correct: boolean }>>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const timerRef = useRef<NodeJS.Timeout>();
+  const textContainerRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  const lineHeight = 40; // Height of each line in pixels
+  const visibleLines = 3; // Number of lines to show at once
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -61,6 +77,28 @@ export function TypingTest() {
     inputRef.current?.focus();
   }, [testDuration]);
 
+  // Function to update visible text portion
+  const updateVisibleText = useCallback(() => {
+    const text = textContainerRef.current?.textContent || '';
+    const lines = text.split('\n');
+    let currentLine = 0;
+    let charCount = 0;
+    
+    // Find which line contains the current character
+    for (let i = 0; i < lines.length; i++) {
+      if (charCount + lines[i].length >= currentCharIndex) {
+        currentLine = i;
+        break;
+      }
+      charCount += lines[i].length + 1; // +1 for newline
+    }
+
+    // Update visible text start if needed
+    if (currentLine > 1) {
+      setVisibleTextStart(Math.max(0, currentLine - 1));
+    }
+  }, [currentCharIndex]);
+
   // Handle input changes
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -76,9 +114,20 @@ export function TypingTest() {
       startTimeRef.current = Date.now();
     }
 
+    // Record typing data
+    if (value.length > input.length) {
+      const newChar = value[value.length - 1];
+      const isCorrect = newChar === text[value.length - 1];
+      setTypingData(prev => [...prev, {
+        key: newChar,
+        timestamp: Date.now() - startTimeRef.current,
+        correct: isCorrect
+      }]);
+    }
+
     // Play sound based on correct/incorrect input
     if (keyboardSounds && soundEnabled && !isPaused) {
-      if (value.length > input.length) { // New character typed
+      if (value.length > input.length) {
         const lastCharIndex = value.length - 1;
         if (value[lastCharIndex] === text[lastCharIndex]) {
           keyboardSounds.playKeyPress();
@@ -91,6 +140,7 @@ export function TypingTest() {
     if (!isPaused) {
       setInput(value);
       setCurrentCharIndex(value.length);
+      updateVisibleText();
 
       // Auto-end test if text is completed
       if (value === text) {
@@ -103,18 +153,24 @@ export function TypingTest() {
   const endTest = useCallback(async () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
     }
     setIsTestActive(false);
     setIsPaused(false);
 
     const timeElapsed = testDuration - timeLeft;
-    const results = calculateWPM(input, text, timeElapsed);
+    const { wpm, accuracy, rawWpm, correctChars, incorrectChars, totalKeystrokes } = calculateWPM(input, text, timeElapsed);
     
     const testResults = {
-      wpm: results.wpm,
-      accuracy: results.accuracy,
+      wpm,
+      accuracy,
       duration: testDuration,
-      timeElapsed
+      timeElapsed,
+      rawWpm,
+      correctChars,
+      incorrectChars,
+      totalKeystrokes,
+      replayData: typingData
     };
     setResults(testResults);
 
@@ -123,11 +179,16 @@ export function TypingTest() {
       try {
         await supabase.from("typing_tests").insert({
           user_id: user.id,
-          wpm: results.wpm,
-          accuracy: results.accuracy,
+          wpm,
+          accuracy,
           duration: timeElapsed,
           character_count: input.length,
-          error_count: input.split('').filter((char, i) => char !== text[i]).length,
+          error_count: incorrectChars,
+          raw_wpm: rawWpm,
+          correct_chars: correctChars,
+          incorrect_chars: incorrectChars,
+          total_keystrokes: totalKeystrokes,
+          replay_data: typingData,
           test_type: 'practice',
           timestamp: new Date().toISOString()
         });
@@ -143,7 +204,7 @@ export function TypingTest() {
         });
       }
     }
-  }, [input, text, timeLeft, testDuration, user, toast]);
+  }, [input, text, timeLeft, testDuration, user, toast, typingData]);
 
   // Timer effect
   useEffect(() => {
@@ -321,10 +382,13 @@ export function TypingTest() {
         </div>
       </div>
 
-      <div className="relative">
+      <div className="relative h-[120px] typing-text-container bg-card rounded-lg shadow-sm" ref={textContainerRef}>
         <div
-          className="font-mono text-2xl md:text-3xl leading-relaxed whitespace-pre-wrap mb-8 select-none p-8 bg-card rounded-lg shadow-sm"
-          aria-hidden="true"
+          className="font-mono text-2xl md:text-3xl whitespace-pre-wrap select-none p-8 typing-text-content"
+          style={{
+            transform: `translateY(-${visibleTextStart * lineHeight}px)`,
+            transition: 'transform 0.2s ease-out'
+          }}
         >
           {text.split('').map((char, index) => {
             const isTyped = index < input.length;
@@ -353,7 +417,7 @@ export function TypingTest() {
           ref={inputRef}
           value={input}
           onChange={handleInput}
-          className="absolute inset-0 opacity-0 cursor-default"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-text typing-text-container"
           style={{ resize: "none" }}
           autoCapitalize="off"
           autoComplete="off"
@@ -363,7 +427,7 @@ export function TypingTest() {
         />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {results ? (
           <>
             <div className="p-4 rounded-lg bg-card">
@@ -371,8 +435,8 @@ export function TypingTest() {
               <div className="text-sm text-muted-foreground">WPM</div>
             </div>
             <div className="p-4 rounded-lg bg-card">
-              <div className="text-3xl font-bold text-primary">{Math.round(results.wpm * 5)}</div>
-              <div className="text-sm text-muted-foreground">CPM</div>
+              <div className="text-3xl font-bold text-primary">{Math.round(results.rawWpm)}</div>
+              <div className="text-sm text-muted-foreground">Raw WPM</div>
             </div>
             <div className="p-4 rounded-lg bg-card">
               <div className="text-3xl font-bold text-primary">{Math.round(results.accuracy)}%</div>
@@ -387,16 +451,22 @@ export function TypingTest() {
           isTestActive && (
             <>
               <div className="p-4 rounded-lg bg-card">
-                <div className="text-3xl font-bold text-primary">{Math.round((input.length / 5) / ((testDuration - timeLeft) / 60))}</div>
+                <div className="text-3xl font-bold text-primary">
+                  {Math.round((input.length / 5) / ((testDuration - timeLeft) / 60))}
+                </div>
                 <div className="text-sm text-muted-foreground">Current WPM</div>
               </div>
               <div className="p-4 rounded-lg bg-card">
-                <div className="text-3xl font-bold text-primary">{Math.round((input.length) / ((testDuration - timeLeft) / 60))}</div>
+                <div className="text-3xl font-bold text-primary">
+                  {Math.round((input.length) / ((testDuration - timeLeft) / 60))}
+                </div>
                 <div className="text-sm text-muted-foreground">Current CPM</div>
               </div>
               <div className="p-4 rounded-lg bg-card">
                 <div className="text-3xl font-bold text-primary">
-                  {Math.round((input.split('').filter((char, i) => char === text[i]).length / input.length) * 100)}%
+                  {input.length > 0
+                    ? Math.round((input.split('').filter((char, i) => char === text[i]).length / input.length) * 100)
+                    : 100}%
                 </div>
                 <div className="text-sm text-muted-foreground">Current Accuracy</div>
               </div>
@@ -409,7 +479,7 @@ export function TypingTest() {
         )}
       </div>
 
-      <div className="flex justify-center gap-4 mb-4">
+      <div className="flex justify-center gap-4">
         {isTestActive && !results && (
           <Button 
             variant="destructive"
@@ -429,37 +499,50 @@ export function TypingTest() {
         </Button>
       </div>
 
-      {/* Results */}
       {results && (
         <motion.div
-          className="text-center"
+          className="space-y-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h2 className="text-2xl font-bold mb-4">Test Results</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-6">
-            <div>
-              <div className="text-3xl font-bold text-primary">{results.wpm}</div>
-              <div className="text-sm text-muted-foreground">WPM</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-lg bg-card">
+              <div className="text-sm text-muted-foreground">Correct Characters</div>
+              <div className="text-2xl font-bold text-primary">{results.correctChars}</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-primary">{Math.round(results.wpm * 5)}</div>
-              <div className="text-sm text-muted-foreground">CPM</div>
+            <div className="p-4 rounded-lg bg-card">
+              <div className="text-sm text-muted-foreground">Incorrect Characters</div>
+              <div className="text-2xl font-bold text-primary">{results.incorrectChars}</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-primary">
-                {results.accuracy}%
+            <div className="p-4 rounded-lg bg-card">
+              <div className="text-sm text-muted-foreground">Total Keystrokes</div>
+              <div className="text-2xl font-bold text-primary">{results.totalKeystrokes}</div>
+            </div>
+            <div className="p-4 rounded-lg bg-card">
+              <div className="text-sm text-muted-foreground">Characters per Second</div>
+              <div className="text-2xl font-bold text-primary">
+                {Math.round((results.totalKeystrokes / results.timeElapsed) * 10) / 10}
               </div>
-              <div className="text-sm text-muted-foreground">Accuracy</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-primary">
-                {results.timeElapsed}s
-              </div>
-              <div className="text-sm text-muted-foreground">Time</div>
             </div>
           </div>
-          <div className="flex justify-center gap-4">
+
+          <div className="p-4 rounded-lg bg-card">
+            <h3 className="text-lg font-semibold mb-4">Replay</h3>
+            <div className="h-[100px] overflow-hidden relative">
+              <div 
+                className="font-mono text-sm whitespace-pre-wrap"
+                style={{
+                  animation: `typewriter ${results.timeElapsed}s linear forwards`,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all'
+                }}
+              >
+                {text}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
             <Button
               onClick={replayTest}
               variant="outline"
@@ -477,7 +560,6 @@ export function TypingTest() {
         </motion.div>
       )}
 
-      {/* Keyboard shortcuts modal */}
       {showShortcuts && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-card p-6 rounded-lg shadow-lg max-w-md w-full">
@@ -510,7 +592,6 @@ export function TypingTest() {
         </div>
       )}
 
-      {/* Keyboard shortcuts hint */}
       <div className="text-center mt-8 text-sm text-muted-foreground">
         Press <kbd className="px-2 py-1 bg-secondary rounded">?</kbd> to view keyboard shortcuts
       </div>

@@ -2,6 +2,8 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const siteUrl = 'https://typingspot.online';
+
 // List of paths that require authentication
 const protectedPaths = [
   '/dashboard',
@@ -70,7 +72,7 @@ export async function middleware(req: NextRequest) {
     if (authPaths.some(path => pathname.startsWith(path))) {
       if (session) {
         // If user is logged in, redirect to dashboard
-        return NextResponse.redirect(new URL('/dashboard', req.url));
+        return NextResponse.redirect(`${siteUrl}/dashboard`);
       }
       return res;
     }
@@ -80,9 +82,7 @@ export async function middleware(req: NextRequest) {
       if (!session) {
         // Save the original URL to redirect back after login
         const redirectUrl = pathname + req.nextUrl.search;
-        const loginUrl = new URL('/login', req.url);
-        loginUrl.searchParams.set('redirect', redirectUrl);
-        return NextResponse.redirect(loginUrl);
+        return NextResponse.redirect(`${siteUrl}/login?redirect=${encodeURIComponent(redirectUrl)}`);
       }
       return res;
     }
@@ -92,7 +92,7 @@ export async function middleware(req: NextRequest) {
   } catch (error) {
     console.error('Middleware error:', error);
     // In case of error, redirect to login
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(`${siteUrl}/login`);
   }
 }
 

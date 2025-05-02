@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [router, searchParams, pathname, toast]);
+  }, [router, searchParams, pathname]);
 
   const signIn = async (email: string, password: string) => {
     try {

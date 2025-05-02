@@ -45,35 +45,51 @@ export function calculateWPM(
   typedText: string,
   originalText: string,
   timeInSeconds: number
-): { wpm: number; accuracy: number } {
+): { 
+  wpm: number; 
+  accuracy: number;
+  rawWpm: number;
+  correctChars: number;
+  incorrectChars: number;
+  totalKeystrokes: number;
+} {
   // Count correct characters and errors
   let correctChars = 0;
-  let errors = 0;
+  let incorrectChars = 0;
   const minLength = Math.min(typedText.length, originalText.length);
   
   for (let i = 0; i < minLength; i++) {
     if (typedText[i] === originalText[i]) {
       correctChars++;
     } else {
-      errors++;
+      incorrectChars++;
     }
   }
 
   // Add remaining characters as errors if typed text is longer
-  errors += Math.abs(typedText.length - originalText.length);
+  incorrectChars += Math.abs(typedText.length - originalText.length);
+
+  // Calculate total keystrokes
+  const totalKeystrokes = typedText.length;
 
   // Calculate accuracy based on total characters typed
-  const totalChars = typedText.length;
-  const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 0;
+  const accuracy = totalKeystrokes > 0 ? (correctChars / totalKeystrokes) * 100 : 0;
 
-  // Calculate WPM: (correct characters / 5) / minutes
-  // Using 5 as average word length
+  // Calculate minutes
   const minutes = timeInSeconds / 60;
-  const grossWPM = Math.round((typedText.length / 5) / minutes);
-  const netWPM = Math.max(0, Math.round((correctChars / 5) / minutes));
+
+  // Calculate Raw WPM (all keystrokes)
+  const rawWpm = Math.round((totalKeystrokes / 5) / minutes);
+
+  // Calculate Net WPM (correct characters only)
+  const netWpm = Math.max(0, Math.round((correctChars / 5) / minutes));
 
   return {
-    wpm: netWPM, // Use net WPM for more accurate results
-    accuracy: Math.round(accuracy * 100) / 100
+    wpm: netWpm,
+    rawWpm,
+    accuracy: Math.round(accuracy * 100) / 100,
+    correctChars,
+    incorrectChars,
+    totalKeystrokes
   };
 } 
