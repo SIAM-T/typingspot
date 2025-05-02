@@ -7,18 +7,36 @@ import { Navbar } from "@/components/layout/navbar";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "TypingSpot - Type Fast. Type Smart. Rule the Keyboard.",
-  description: "The most fun and feature-rich typing platform. Improve your typing speed with games, lessons, and multiplayer challenges.",
-  keywords: ["typing test", "typing games", "learn typing", "typing speed", "WPM test", "code typing", "programming practice"],
+  description: "Master typing with TypingSpot's interactive lessons, real-time typing tests, code practice, and multiplayer challenges. Track your WPM, accuracy, and compete with others.",
+  keywords: [
+    "typing test",
+    "typing speed test",
+    "WPM calculator",
+    "typing practice",
+    "code typing practice",
+    "programming typing practice",
+    "touch typing",
+    "typing games",
+    "learn typing",
+    "improve typing speed",
+    "online typing test",
+    "multiplayer typing",
+    "typing competition"
+  ],
   authors: [{ name: "TypingSpot" }],
   metadataBase: new URL('https://advanced-typingspot.onrender.com'),
+  alternates: {
+    canonical: 'https://advanced-typingspot.onrender.com'
+  },
   openGraph: {
     title: "TypingSpot - Type Fast. Type Smart. Rule the Keyboard.",
-    description: "The most fun and feature-rich typing platform. Improve your typing speed with games, lessons, and multiplayer challenges.",
+    description: "Master typing with TypingSpot's interactive lessons, real-time typing tests, code practice, and multiplayer challenges. Track your WPM, accuracy, and compete with others.",
     url: 'https://advanced-typingspot.onrender.com',
     type: "website",
     locale: "en_US",
@@ -35,8 +53,9 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'TypingSpot - Type Fast. Type Smart. Rule the Keyboard.',
-    description: 'The most fun and feature-rich typing platform. Improve your typing speed with games, lessons, and multiplayer challenges.',
+    description: 'Master typing with TypingSpot\'s interactive lessons, real-time typing tests, code practice, and multiplayer challenges.',
     images: ['/og-image.jpg'],
+    creator: '@typingspot'
   },
   robots: {
     index: true,
@@ -52,6 +71,7 @@ export const metadata: Metadata = {
   verification: {
     google: 'verification_token',
   },
+  category: 'Education',
 };
 
 function AuthLoading() {
@@ -69,6 +89,37 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <Script id="schema-org" type="application/ld+json">
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "TypingSpot",
+              "url": "https://advanced-typingspot.onrender.com",
+              "description": "Master typing with TypingSpot's interactive lessons, real-time typing tests, code practice, and multiplayer challenges.",
+              "applicationCategory": "Education",
+              "operatingSystem": "Any",
+              "offers": {
+                "@type": "Offer",
+                "price": "0"
+              },
+              "featureList": [
+                "Real-time typing tests",
+                "Code typing practice",
+                "Multiplayer challenges",
+                "Progress tracking",
+                "Achievement system",
+                "Customizable settings"
+              ]
+            }
+          `}
+        </Script>
+      </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
         <ThemeProvider
           attribute="class"

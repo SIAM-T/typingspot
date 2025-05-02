@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase/config";
 import { checkAndUpdateAchievements } from "@/lib/utils/achievements";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 type TestDuration = 15 | 30 | 60 | 300;
 
@@ -207,93 +208,132 @@ export function TypingTest() {
     };
   }, [initTest, isTestActive, isPaused, soundEnabled]);
 
+  // Focus input on mount and after each test
+  useEffect(() => {
+    const focusInput = () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    };
+
+    focusInput();
+    window.addEventListener('focus', focusInput);
+    window.addEventListener('click', focusInput);
+
+    return () => {
+      window.removeEventListener('focus', focusInput);
+      window.removeEventListener('click', focusInput);
+    };
+  }, []);
+
+  // Prevent default behavior of certain keys
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent tab from changing focus
+      if (e.key === 'Tab') {
+        e.preventDefault();
+      }
+      // Prevent backspace from navigating back
+      if (e.key === 'Backspace' && !isTestActive) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isTestActive]);
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Test duration selector */}
-      <div className="flex justify-center gap-4 mb-8">
-        {[15, 30, 60, 300].map((duration) => (
-          <Button
-            key={duration}
-            onClick={() => setTestDuration(duration as TestDuration)}
-            variant={testDuration === duration ? "default" : "secondary"}
-            disabled={isTestActive && !isPaused}
-          >
-            {duration === 300 ? "5 min" : `${duration}s`}
-          </Button>
-        ))}
-      </div>
-
-      {/* Sound toggle */}
-      <div className="flex justify-center gap-4 mb-4">
+    <div className="space-y-8">
+      <div className="flex flex-wrap gap-4 justify-center">
         <Button
-          variant={soundEnabled ? "default" : "secondary"}
-          onClick={() => {
-            const newSoundEnabled = !soundEnabled;
-            setSoundEnabled(newSoundEnabled);
-            if (keyboardSounds) {
-              keyboardSounds.setEnabled(newSoundEnabled);
-            }
-          }}
-          className="text-sm"
+          variant={testDuration === 15 ? "default" : "outline"}
+          onClick={() => setTestDuration(15)}
         >
-          {soundEnabled ? "🔊 Sound On" : "🔇 Sound Off"}
+          15s
         </Button>
-
-        {isTestActive && !isPaused && (
-          <Button
-            variant="destructive"
-            onClick={endTest}
-            className="text-sm"
-          >
-            End Test
-          </Button>
-        )}
-      </div>
-
-      {/* Timer */}
-      <div className="text-center mb-8">
-        <motion.div
-          className="text-4xl font-bold"
-          key={timeLeft}
-          initial={{ scale: 1 }}
-          animate={{ scale: timeLeft <= 5 && timeLeft > 0 ? [1, 1.2, 1] : 1 }}
-          transition={{ duration: 0.5 }}
+        <Button
+          variant={testDuration === 30 ? "default" : "outline"}
+          onClick={() => setTestDuration(30)}
         >
-          {timeLeft}s
-        </motion.div>
+          30s
+        </Button>
+        <Button
+          variant={testDuration === 60 ? "default" : "outline"}
+          onClick={() => setTestDuration(60)}
+        >
+          60s
+        </Button>
+        <Button
+          variant={testDuration === 300 ? "default" : "outline"}
+          onClick={() => setTestDuration(300)}
+        >
+          5min
+        </Button>
       </div>
 
-      {/* Typing area */}
-      <div className="relative mb-8">
+      <div className="relative">
         <div
-          className="font-mono text-lg leading-relaxed whitespace-pre-wrap mb-4 p-4 rounded-lg bg-secondary/30"
-          style={{ minHeight: "150px" }}
+          className="font-mono text-lg leading-relaxed whitespace-pre-wrap mb-8 select-none"
+          aria-hidden="true"
         >
-          {text.split("").map((char, index) => {
-            let color = "text-muted-foreground";
-            if (index < input.length) {
-              color = input[index] === char ? "text-green-500" : "text-red-500";
-            }
+          {text.split('').map((char, index) => {
+            const isTyped = index < input.length;
+            const isCorrect = input[index] === char;
+            const isCurrent = index === currentCharIndex;
+
             return (
               <span
                 key={index}
-                className={`${color} ${
-                  index === currentCharIndex ? "bg-primary/20" : ""
-                }`}
+                className={cn(
+                  isTyped
+                    ? isCorrect
+                      ? "text-green-500 dark:text-green-400"
+                      : "text-red-500 dark:text-red-400"
+                    : "text-foreground",
+                  isCurrent && "bg-primary/20 rounded"
+                )}
               >
                 {char}
               </span>
             );
           })}
         </div>
+
         <textarea
           ref={inputRef}
           value={input}
           onChange={handleInput}
           className="absolute inset-0 opacity-0 cursor-default"
-          autoFocus
-          readOnly={!isTestActive || isPaused}
+          style={{ resize: "none" }}
+          autoCapitalize="off"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          aria-label="Type here to start the test"
         />
+      </div>
+
+      <div className="flex justify-center gap-8 text-lg">
+        <div>Time: {timeLeft}s</div>
+        {results && (
+          <>
+            <div>WPM: {Math.round(results.wpm)}</div>
+            <div>Accuracy: {Math.round(results.accuracy)}%</div>
+          </>
+        )}
+      </div>
+
+      <div className="flex justify-center gap-4">
+        <Button onClick={initTest}>
+          Restart Test (R)
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setSoundEnabled(!soundEnabled)}
+        >
+          {soundEnabled ? "Sound On (M)" : "Sound Off (M)"}
+        </Button>
       </div>
 
       {/* Results */}
