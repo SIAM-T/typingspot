@@ -115,12 +115,15 @@ export function TypingTest() {
     // Save results if user is authenticated
     if (user) {
       try {
-        await supabase.from("typing_results").insert({
+        await supabase.from("typing_tests").insert({
           user_id: user.id,
           wpm: results.wpm,
           accuracy: results.accuracy,
           duration: timeElapsed,
-          text_type: "random"
+          character_count: input.length,
+          error_count: input.split('').filter((char, i) => char !== text[i]).length,
+          test_type: 'practice',
+          timestamp: new Date().toISOString()
         });
 
         // Check and update achievements
@@ -251,36 +254,41 @@ export function TypingTest() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap gap-4 justify-center">
-        <Button
-          variant={testDuration === 15 ? "default" : "outline"}
-          onClick={() => setTestDuration(15)}
-        >
-          15s
-        </Button>
-        <Button
-          variant={testDuration === 30 ? "default" : "outline"}
-          onClick={() => setTestDuration(30)}
-        >
-          30s
-        </Button>
-        <Button
-          variant={testDuration === 60 ? "default" : "outline"}
-          onClick={() => setTestDuration(60)}
-        >
-          60s
-        </Button>
-        <Button
-          variant={testDuration === 300 ? "default" : "outline"}
-          onClick={() => setTestDuration(300)}
-        >
-          5min
-        </Button>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap gap-4">
+          <Button
+            variant={testDuration === 15 ? "default" : "outline"}
+            onClick={() => setTestDuration(15)}
+          >
+            15s
+          </Button>
+          <Button
+            variant={testDuration === 30 ? "default" : "outline"}
+            onClick={() => setTestDuration(30)}
+          >
+            30s
+          </Button>
+          <Button
+            variant={testDuration === 60 ? "default" : "outline"}
+            onClick={() => setTestDuration(60)}
+          >
+            60s
+          </Button>
+          <Button
+            variant={testDuration === 300 ? "default" : "outline"}
+            onClick={() => setTestDuration(300)}
+          >
+            5min
+          </Button>
+        </div>
+        <div className="text-3xl font-bold font-mono">
+          {Math.ceil(timeLeft)}s
+        </div>
       </div>
 
       <div className="relative">
         <div
-          className="font-mono text-xl md:text-2xl leading-relaxed whitespace-pre-wrap mb-8 select-none p-6 bg-card rounded-lg shadow-sm"
+          className="font-mono text-2xl md:text-3xl leading-relaxed whitespace-pre-wrap mb-8 select-none p-8 bg-card rounded-lg shadow-sm"
           aria-hidden="true"
         >
           {text.split('').map((char, index) => {
@@ -291,14 +299,14 @@ export function TypingTest() {
             return (
               <span
                 key={index}
-                className={cn([
+                className={cn(
                   isTyped
                     ? isCorrect
                       ? "text-green-500 dark:text-green-400"
                       : "text-red-500 dark:text-red-400"
                     : "text-foreground",
-                  isCurrent ? "bg-primary/20 rounded px-0.5" : ""
-                ])}
+                  isCurrent ? "bg-primary/20 rounded px-1" : ""
+                )}
               >
                 {char}
               </span>
@@ -320,13 +328,49 @@ export function TypingTest() {
         />
       </div>
 
-      <div className="flex justify-center gap-8 text-lg">
-        <div>Time: {timeLeft}s</div>
-        {results && (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        {results ? (
           <>
-            <div>WPM: {Math.round(results.wpm)}</div>
-            <div>Accuracy: {Math.round(results.accuracy)}%</div>
+            <div className="p-4 rounded-lg bg-card">
+              <div className="text-3xl font-bold text-primary">{Math.round(results.wpm)}</div>
+              <div className="text-sm text-muted-foreground">WPM</div>
+            </div>
+            <div className="p-4 rounded-lg bg-card">
+              <div className="text-3xl font-bold text-primary">{Math.round(results.wpm * 5)}</div>
+              <div className="text-sm text-muted-foreground">CPM</div>
+            </div>
+            <div className="p-4 rounded-lg bg-card">
+              <div className="text-3xl font-bold text-primary">{Math.round(results.accuracy)}%</div>
+              <div className="text-sm text-muted-foreground">Accuracy</div>
+            </div>
+            <div className="p-4 rounded-lg bg-card">
+              <div className="text-3xl font-bold text-primary">{results.timeElapsed}s</div>
+              <div className="text-sm text-muted-foreground">Time</div>
+            </div>
           </>
+        ) : (
+          isTestActive && (
+            <>
+              <div className="p-4 rounded-lg bg-card">
+                <div className="text-3xl font-bold text-primary">{Math.round((input.length / 5) / ((testDuration - timeLeft) / 60))}</div>
+                <div className="text-sm text-muted-foreground">Current WPM</div>
+              </div>
+              <div className="p-4 rounded-lg bg-card">
+                <div className="text-3xl font-bold text-primary">{Math.round((input.length) / ((testDuration - timeLeft) / 60))}</div>
+                <div className="text-sm text-muted-foreground">Current CPM</div>
+              </div>
+              <div className="p-4 rounded-lg bg-card">
+                <div className="text-3xl font-bold text-primary">
+                  {Math.round((input.split('').filter((char, i) => char === text[i]).length / input.length) * 100)}%
+                </div>
+                <div className="text-sm text-muted-foreground">Current Accuracy</div>
+              </div>
+              <div className="p-4 rounded-lg bg-card">
+                <div className="text-3xl font-bold text-primary">{Math.round(testDuration - timeLeft)}s</div>
+                <div className="text-sm text-muted-foreground">Time Elapsed</div>
+              </div>
+            </>
+          )
         )}
       </div>
 
@@ -350,10 +394,14 @@ export function TypingTest() {
           animate={{ opacity: 1, y: 0 }}
         >
           <h2 className="text-2xl font-bold mb-4">Test Results</h2>
-          <div className="grid grid-cols-3 gap-8 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-6">
             <div>
               <div className="text-3xl font-bold text-primary">{results.wpm}</div>
               <div className="text-sm text-muted-foreground">WPM</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-primary">{Math.round(results.wpm * 5)}</div>
+              <div className="text-sm text-muted-foreground">CPM</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-primary">

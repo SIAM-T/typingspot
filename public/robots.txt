@@ -4,4 +4,13 @@ User-agent: *
 Allow: /
 
 # Sitemaps
-Sitemap: https://typingspot.online/sitemap.xml 
+Sitemap: https://typingspot.online/sitemap.xml
+
+# Disallow admin and auth pages
+Disallow: /admin/
+Disallow: /auth/callback
+Disallow: /auth/error
+Disallow: /auth/reset-password
+
+# Rate limiting
+Crawl-delay: 1 

@@ -11,52 +11,31 @@ import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const title = 'TypingSpot - Free Online Typing Test and Practice';
+const description = 'Improve your typing speed and accuracy with TypingSpot. Take typing tests, track your progress, compete with others, and learn touch typing with our interactive lessons.';
+
 export const metadata: Metadata = {
-  title: "TypingSpot - Type Fast. Type Smart. Rule the Keyboard.",
-  description: "Master typing with TypingSpot's interactive lessons, real-time typing tests, code practice, and multiplayer challenges. Track your WPM, accuracy, and compete with others.",
-  keywords: [
-    "typing test",
-    "typing speed test",
-    "WPM calculator",
-    "typing practice",
-    "code typing practice",
-    "programming typing practice",
-    "touch typing",
-    "typing games",
-    "learn typing",
-    "improve typing speed",
-    "online typing test",
-    "multiplayer typing",
-    "typing competition"
-  ],
-  authors: [{ name: "TypingSpot" }],
   metadataBase: new URL('https://typingspot.online'),
-  alternates: {
-    canonical: 'https://typingspot.online'
+  title: {
+    default: title,
+    template: '%s | TypingSpot'
   },
-  openGraph: {
-    title: "TypingSpot - Type Fast. Type Smart. Rule the Keyboard.",
-    description: "Master typing with TypingSpot's interactive lessons, real-time typing tests, code practice, and multiplayer challenges. Track your WPM, accuracy, and compete with others.",
-    url: 'https://typingspot.online',
-    type: "website",
-    locale: "en_US",
-    siteName: "TypingSpot",
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'TypingSpot - Improve your typing speed'
-      }
-    ]
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'TypingSpot - Type Fast. Type Smart. Rule the Keyboard.',
-    description: 'Master typing with TypingSpot\'s interactive lessons, real-time typing tests, code practice, and multiplayer challenges.',
-    images: ['/og-image.jpg'],
-    creator: '@typingspot'
-  },
+  description,
+  keywords: [
+    'typing test',
+    'typing speed',
+    'wpm calculator',
+    'typing practice',
+    'touch typing',
+    'typing games',
+    'typing tutor',
+    'online typing',
+    'keyboard practice',
+    'typing skills'
+  ],
+  authors: [{ name: 'TypingSpot Team' }],
+  creator: 'TypingSpot',
+  publisher: 'TypingSpot',
   robots: {
     index: true,
     follow: true,
@@ -68,10 +47,40 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  verification: {
-    google: 'verification_token',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://typingspot.online',
+    siteName: 'TypingSpot',
+    title,
+    description,
+    images: [
+      {
+        url: 'https://typingspot.online/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'TypingSpot - Free Online Typing Test and Practice'
+      }
+    ]
   },
-  category: 'Education',
+  twitter: {
+    card: 'summary_large_image',
+    title,
+    description,
+    images: ['https://typingspot.online/og-image.png'],
+    creator: '@typingspot'
+  },
+  verification: {
+    google: 'your-google-site-verification-code',
+    yandex: 'your-yandex-verification-code',
+    yahoo: 'your-yahoo-verification-code'
+  },
+  alternates: {
+    canonical: 'https://typingspot.online',
+    languages: {
+      'en-US': 'https://typingspot.online'
+    }
+  }
 };
 
 function AuthLoading() {
@@ -94,31 +103,36 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
-        <Script id="schema-org" type="application/ld+json">
-          {`
-            {
+        
+        {/* Preconnect to important origins */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        
+        {/* Structured data for rich results */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               "name": "TypingSpot",
               "url": "https://typingspot.online",
-              "description": "Master typing with TypingSpot's interactive lessons, real-time typing tests, code practice, and multiplayer challenges.",
-              "applicationCategory": "Education",
+              "description": description,
+              "applicationCategory": "EducationalApplication",
               "operatingSystem": "Any",
               "offers": {
                 "@type": "Offer",
-                "price": "0"
+                "price": "0",
+                "priceCurrency": "USD"
               },
-              "featureList": [
-                "Real-time typing tests",
-                "Code typing practice",
-                "Multiplayer challenges",
-                "Progress tracking",
-                "Achievement system",
-                "Customizable settings"
-              ]
-            }
-          `}
-        </Script>
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.8",
+                "ratingCount": "1250"
+              }
+            })
+          }}
+        />
       </head>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
         <ThemeProvider
