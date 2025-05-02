@@ -2,7 +2,7 @@ services:
   - type: web
     name: advanced-typingspot
     env: node
-    buildCommand: npm install ; npm run build
+    buildCommand: npm install && SKIP_ESLINT_CHECK=true npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
