@@ -61,10 +61,16 @@ export function TypingTest() {
     inputRef.current?.focus();
   }, [testDuration]);
 
-  // Start the test when user starts typing
+  // Handle input changes
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     
+    // Prevent typing if test is complete
+    if (results || !isTestActive) {
+      e.preventDefault();
+      return;
+    }
+
     if (!isTestActive && !isPaused && value.length === 1) {
       setIsTestActive(true);
       startTimeRef.current = Date.now();
@@ -252,6 +258,35 @@ export function TypingTest() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isTestActive]);
 
+  // Force end test
+  const forceEndTest = () => {
+    if (isTestActive && !results) {
+      endTest();
+    }
+  };
+
+  // Replay test with same text
+  const replayTest = () => {
+    setInput("");
+    setTimeLeft(testDuration);
+    setIsTestActive(false);
+    setIsPaused(false);
+    setResults(null);
+    setCurrentCharIndex(0);
+    startTimeRef.current = 0;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    inputRef.current?.focus();
+  };
+
+  // Generate new test
+  const newTest = () => {
+    const newText = generateText(testDuration === 300 ? 200 : 100);
+    setText(newText);
+    replayTest();
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between mb-8">
@@ -374,9 +409,17 @@ export function TypingTest() {
         )}
       </div>
 
-      <div className="flex justify-center gap-4">
-        <Button onClick={initTest}>
-          Restart Test (R)
+      <div className="flex justify-center gap-4 mb-4">
+        {isTestActive && !results && (
+          <Button 
+            variant="destructive"
+            onClick={forceEndTest}
+          >
+            End Test
+          </Button>
+        )}
+        <Button onClick={newTest}>
+          New Test (R)
         </Button>
         <Button
           variant="outline"
@@ -416,13 +459,21 @@ export function TypingTest() {
               <div className="text-sm text-muted-foreground">Time</div>
             </div>
           </div>
-          <Button
-            onClick={initTest}
-            size="lg"
-            className="w-full max-w-sm"
-          >
-            Try Again
-          </Button>
+          <div className="flex justify-center gap-4">
+            <Button
+              onClick={replayTest}
+              variant="outline"
+              size="lg"
+            >
+              Retry Same Text
+            </Button>
+            <Button
+              onClick={newTest}
+              size="lg"
+            >
+              Try New Text
+            </Button>
+          </div>
         </motion.div>
       )}
 

@@ -10,23 +10,40 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
 
 const siteUrl = 'https://typingspot.online';
 
+const customStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      if (typeof window === 'undefined') return null;
+      return document.cookie
+        .split('; ')
+        .find(row => row.startsWith(`${key}=`))
+        ?.split('=')[1] || null;
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window === 'undefined') return;
+    document.cookie = `${key}=${value}; path=/; domain=typingspot.online; secure; samesite=lax; max-age=604800`;
+  },
+  removeItem: (key: string): void => {
+    if (typeof window === 'undefined') return;
+    document.cookie = `${key}=; path=/; domain=typingspot.online; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }
+};
+
 export const supabase = createClient<SupabaseDatabase>(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   {
     auth: {
-      persistSession: true,
       autoRefreshToken: true,
+      persistSession: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storage: customStorage,
       storageKey: 'typingspot-auth',
-      debug: process.env.NODE_ENV === 'development',
-      cookieOptions: {
-        domain: process.env.NODE_ENV === 'production' ? 'typingspot.online' : 'localhost',
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
-      }
+      debug: false
     },
     global: {
       headers: {
