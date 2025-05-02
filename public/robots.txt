@@ -1,7 +1,7 @@
-# https://advanced-typingspot.onrender.com/robots.txt
+# https://typingspot.online/robots.txt
 # Allow all crawlers
 User-agent: *
 Allow: /
 
 # Sitemaps
-Sitemap: https://advanced-typingspot.onrender.com/sitemap.xml 
+Sitemap: https://typingspot.online/sitemap.xml 

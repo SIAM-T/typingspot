@@ -51,21 +51,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setLoading(true);
         
-        // Wait for session manager to initialize
         await sessionManager.waitForInitialization();
 
         if (!mounted) return;
 
-        // Get initial user state
         const currentUser = sessionManager.getUser();
         setUser(currentUser);
 
         if (currentUser) {
           if (pathname === '/') {
-            router.replace('https://advanced-typingspot.onrender.com/dashboard');
+            router.replace('https://typingspot.online/dashboard');
           } else if (authPaths.some(path => pathname.startsWith(path))) {
-            const redirectTo = searchParams.get('redirect') || 'https://advanced-typingspot.onrender.com/dashboard';
-            router.replace(redirectTo.startsWith('http') ? redirectTo : `https://advanced-typingspot.onrender.com${redirectTo}`);
+            const redirectTo = searchParams.get('redirect') || 'https://typingspot.online/dashboard';
+            router.replace(redirectTo.startsWith('http') ? redirectTo : `https://typingspot.online${redirectTo}`);
           }
         }
       } catch (error) {
@@ -79,12 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
 
-    // Listen for auth changes through session manager
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (!mounted) return;
 
       try {
-        // Wait a bit for the session to be properly set up
         await new Promise(resolve => setTimeout(resolve, 100));
         
         const currentUser = sessionManager.getUser();
@@ -92,10 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === 'SIGNED_IN' && currentUser) {
           const redirectTo = searchParams.get('redirect') || '/dashboard';
-          router.replace(redirectTo.startsWith('http') ? redirectTo : `https://advanced-typingspot.onrender.com${redirectTo}`);
+          router.replace(redirectTo.startsWith('http') ? redirectTo : `https://typingspot.online${redirectTo}`);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          router.replace('https://advanced-typingspot.onrender.com/login');
+          router.replace('https://typingspot.online/login');
         }
       } catch (error) {
         console.error("Error handling auth state change:", error);
@@ -131,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: 'https://advanced-typingspot.onrender.com/auth/callback',
+          emailRedirectTo: 'https://typingspot.online/auth/callback',
         }
       });
       if (error) throw error;
@@ -150,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      router.replace("https://advanced-typingspot.onrender.com/login");
+      router.replace("https://typingspot.online/login");
     } catch (error) {
       console.error("Error signing out:", error);
       throw error;
@@ -160,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://advanced-typingspot.onrender.com/auth/reset-password',
+        redirectTo: 'https://typingspot.online/auth/reset-password',
       });
       if (error) throw error;
     } catch (error) {
@@ -174,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://advanced-typingspot.onrender.com/auth/callback',
+          redirectTo: 'https://typingspot.online/auth/callback',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

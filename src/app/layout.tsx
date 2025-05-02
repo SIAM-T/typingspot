@@ -30,14 +30,14 @@ export const metadata: Metadata = {
     "typing competition"
   ],
   authors: [{ name: "TypingSpot" }],
-  metadataBase: new URL('https://advanced-typingspot.onrender.com'),
+  metadataBase: new URL('https://typingspot.online'),
   alternates: {
-    canonical: 'https://advanced-typingspot.onrender.com'
+    canonical: 'https://typingspot.online'
   },
   openGraph: {
     title: "TypingSpot - Type Fast. Type Smart. Rule the Keyboard.",
     description: "Master typing with TypingSpot's interactive lessons, real-time typing tests, code practice, and multiplayer challenges. Track your WPM, accuracy, and compete with others.",
-    url: 'https://advanced-typingspot.onrender.com',
+    url: 'https://typingspot.online',
     type: "website",
     locale: "en_US",
     siteName: "TypingSpot",
@@ -100,7 +100,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               "name": "TypingSpot",
-              "url": "https://advanced-typingspot.onrender.com",
+              "url": "https://typingspot.online",
               "description": "Master typing with TypingSpot's interactive lessons, real-time typing tests, code practice, and multiplayer challenges.",
               "applicationCategory": "Education",
               "operatingSystem": "Any",

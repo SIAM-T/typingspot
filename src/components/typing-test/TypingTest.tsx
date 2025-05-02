@@ -26,6 +26,7 @@ export function TypingTest() {
   const [text, setText] = useState("");
   const [input, setInput] = useState("");
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [lastTickTime, setLastTickTime] = useState<number>(0);
   const [testDuration, setTestDuration] = useState<TestDuration>(() => {
     return UserPreferencesManager.getPreferences().lastTestDuration as TestDuration;
   });
@@ -138,23 +139,28 @@ export function TypingTest() {
   // Timer effect
   useEffect(() => {
     if (isTestActive && !isPaused && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
+      const startTime = performance.now();
+      setLastTickTime(startTime);
+
+      const timer = setInterval(() => {
+        const currentTime = performance.now();
+        const elapsedTime = (currentTime - lastTickTime) / 1000;
+        
         setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
+          const newTime = prev - elapsedTime;
+          if (newTime <= 0) {
+            clearInterval(timer);
             endTest();
             return 0;
           }
-          return prev - 1;
+          setLastTickTime(currentTime);
+          return newTime;
         });
-      }, 1000);
+      }, 100); // Update more frequently for smoother countdown
+
+      return () => clearInterval(timer);
     }
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [isTestActive, isPaused, timeLeft, endTest]);
+  }, [isTestActive, isPaused, timeLeft, lastTickTime, endTest]);
 
   // Initialize test on mount and when duration changes
   useEffect(() => {
@@ -274,7 +280,7 @@ export function TypingTest() {
 
       <div className="relative">
         <div
-          className="font-mono text-lg leading-relaxed whitespace-pre-wrap mb-8 select-none"
+          className="font-mono text-xl md:text-2xl leading-relaxed whitespace-pre-wrap mb-8 select-none p-6 bg-card rounded-lg shadow-sm"
           aria-hidden="true"
         >
           {text.split('').map((char, index) => {
@@ -285,14 +291,14 @@ export function TypingTest() {
             return (
               <span
                 key={index}
-                className={cn(
+                className={cn([
                   isTyped
                     ? isCorrect
                       ? "text-green-500 dark:text-green-400"
                       : "text-red-500 dark:text-red-400"
                     : "text-foreground",
-                  isCurrent && "bg-primary/20 rounded"
-                )}
+                  isCurrent ? "bg-primary/20 rounded px-0.5" : ""
+                ])}
               >
                 {char}
               </span>

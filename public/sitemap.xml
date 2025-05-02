@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://advanced-typingspot.onrender.com</loc>
+    <loc>https://typingspot.online</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://advanced-typingspot.onrender.com/typing-test</loc>
+    <loc>https://typingspot.online/typing-test</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://advanced-typingspot.onrender.com/code-snippets</loc>
+    <loc>https://typingspot.online/code-snippets</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://advanced-typingspot.onrender.com/achievements</loc>
+    <loc>https://typingspot.online/achievements</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://advanced-typingspot.onrender.com/leaderboard</loc>
+    <loc>https://typingspot.online/leaderboard</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://advanced-typingspot.onrender.com/race</loc>
+    <loc>https://typingspot.online/race</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://advanced-typingspot.onrender.com/practice</loc>
+    <loc>https://typingspot.online/practice</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://advanced-typingspot.onrender.com/login</loc>
+    <loc>https://typingspot.online/login</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://advanced-typingspot.onrender.com/signup</loc>
+    <loc>https://typingspot.online/signup</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

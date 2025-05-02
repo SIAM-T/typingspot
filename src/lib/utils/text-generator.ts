@@ -46,25 +46,34 @@ export function calculateWPM(
   originalText: string,
   timeInSeconds: number
 ): { wpm: number; accuracy: number } {
-  // Count correct characters
+  // Count correct characters and errors
   let correctChars = 0;
+  let errors = 0;
   const minLength = Math.min(typedText.length, originalText.length);
   
   for (let i = 0; i < minLength; i++) {
     if (typedText[i] === originalText[i]) {
       correctChars++;
+    } else {
+      errors++;
     }
   }
 
-  // Calculate accuracy
-  const accuracy = (correctChars / originalText.length) * 100;
+  // Add remaining characters as errors if typed text is longer
+  errors += Math.abs(typedText.length - originalText.length);
 
-  // Calculate WPM: (characters per minute / 5) where 5 is average word length
+  // Calculate accuracy based on total characters typed
+  const totalChars = typedText.length;
+  const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 0;
+
+  // Calculate WPM: (correct characters / 5) / minutes
+  // Using 5 as average word length
   const minutes = timeInSeconds / 60;
-  const wpm = Math.round((typedText.length / 5) / minutes);
+  const grossWPM = Math.round((typedText.length / 5) / minutes);
+  const netWPM = Math.max(0, Math.round((correctChars / 5) / minutes));
 
   return {
-    wpm,
+    wpm: netWPM, // Use net WPM for more accurate results
     accuracy: Math.round(accuracy * 100) / 100
   };
 } 
