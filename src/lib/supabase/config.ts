@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import type { Database as SupabaseDatabase } from '@/types/supabase';
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL');
@@ -8,7 +8,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-export const supabase = createClient<Database>(
+export const supabase = createClient<SupabaseDatabase>(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   {
@@ -17,6 +17,14 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storageKey: 'typingspot-auth',
+      debug: process.env.NODE_ENV === 'development',
+    },
+    global: {
+      headers: {
+        'x-application-name': 'typingspot',
+      },
     },
   }
 );

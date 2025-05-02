@@ -62,10 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (currentUser) {
           if (pathname === '/') {
-            router.replace('/dashboard');
+            router.replace('https://advanced-typingspot.onrender.com/dashboard');
           } else if (authPaths.some(path => pathname.startsWith(path))) {
-            const redirectTo = searchParams.get('redirect') || '/dashboard';
-            router.replace(redirectTo);
+            const redirectTo = searchParams.get('redirect') || 'https://advanced-typingspot.onrender.com/dashboard';
+            router.replace(redirectTo.startsWith('http') ? redirectTo : `https://advanced-typingspot.onrender.com${redirectTo}`);
           }
         }
       } catch (error) {
@@ -92,10 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === 'SIGNED_IN' && currentUser) {
           const redirectTo = searchParams.get('redirect') || '/dashboard';
-          router.replace(redirectTo);
+          router.replace(redirectTo.startsWith('http') ? redirectTo : `https://advanced-typingspot.onrender.com${redirectTo}`);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          router.replace('/login');
+          router.replace('https://advanced-typingspot.onrender.com/login');
         }
       } catch (error) {
         console.error("Error handling auth state change:", error);
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: 'https://advanced-typingspot.onrender.com/auth/callback',
         }
       });
       if (error) throw error;
@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      router.replace("/login");
+      router.replace("https://advanced-typingspot.onrender.com/login");
     } catch (error) {
       console.error("Error signing out:", error);
       throw error;
@@ -160,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: 'https://advanced-typingspot.onrender.com/auth/reset-password',
       });
       if (error) throw error;
     } catch (error) {
