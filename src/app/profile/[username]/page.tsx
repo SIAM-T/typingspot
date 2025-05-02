@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/config";
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from '@/components/providers/AuthProvider';
 import { motion } from "framer-motion";
 import { Share2, Edit2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";

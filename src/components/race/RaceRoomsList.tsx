@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/config";
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from "@/components/providers/AuthProvider";
 import type { RaceRoom } from "@/lib/types/race";
 import Link from "next/link";
 

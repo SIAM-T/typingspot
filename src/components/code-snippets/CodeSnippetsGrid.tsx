@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase/config";
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from '@/components/providers/AuthProvider';
 import type { CodeSnippet, ProgrammingLanguage } from "@/lib/types/code-snippets";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

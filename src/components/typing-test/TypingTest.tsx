@@ -6,7 +6,7 @@ import { generateText, calculateWPM } from "@/lib/utils/text-generator";
 import { keyboardSounds } from "@/lib/utils/keyboard-sounds";
 import { UserPreferencesManager } from "@/lib/utils/user-preferences";
 import { keyboardShortcuts } from "@/lib/utils/keyboard-shortcuts";
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase/config";
 import { checkAndUpdateAchievements } from "@/lib/utils/achievements";
 import { Button } from "@/components/ui/button";

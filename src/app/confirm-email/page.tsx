@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase/config';
 import { Loader2, Mail, CheckCircle2, XCircle } from 'lucide-react';
+import { Suspense } from 'react';
 
-export default function ConfirmEmailPage() {
+function ConfirmEmailContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [verificationStatus, setVerificationStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -47,54 +48,70 @@ export default function ConfirmEmailPage() {
   };
 
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full max-w-md space-y-8 text-center"
+    >
+      <div className="space-y-4">
+        <div className="flex justify-center">
+          <Mail className="h-16 w-16 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Check your email</h1>
+        {email && (
+          <p className="text-sm text-muted-foreground">
+            We've sent a verification link to <span className="font-medium">{email}</span>
+          </p>
+        )}
+        <p className="text-sm text-muted-foreground">
+          Click the link in the email to verify your account and complete the signup process.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleResendEmail}
+        >
+          Resend verification email
+        </Button>
+
+        <p className="text-sm text-muted-foreground">
+          Already verified?{' '}
+          <Link href="/login" className="font-medium text-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
+
+      <div className="text-sm text-muted-foreground">
+        <p>Make sure to:</p>
+        <ul className="mt-2 space-y-1">
+          <li>• Check your spam folder</li>
+          <li>• Use the resend button if you haven't received the email</li>
+          <li>• Contact support if you're still having issues</li>
+        </ul>
+      </div>
+    </motion.div>
+  );
+}
+
+function ConfirmEmailLoading() {
+  return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md space-y-8 text-center"
-      >
-        <div className="space-y-4">
-          <div className="flex justify-center">
-            <Mail className="h-16 w-16 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Check your email</h1>
-          {email && (
-            <p className="text-sm text-muted-foreground">
-              We've sent a verification link to <span className="font-medium">{email}</span>
-            </p>
-          )}
-          <p className="text-sm text-muted-foreground">
-            Click the link in the email to verify your account and complete the signup process.
-          </p>
-        </div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  );
+}
 
-        <div className="space-y-4">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleResendEmail}
-          >
-            Resend verification email
-          </Button>
-
-          <p className="text-sm text-muted-foreground">
-            Already verified?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline">
-              Sign in
-            </Link>
-          </p>
-        </div>
-
-        <div className="text-sm text-muted-foreground">
-          <p>Make sure to:</p>
-          <ul className="mt-2 space-y-1">
-            <li>• Check your spam folder</li>
-            <li>• Use the resend button if you haven't received the email</li>
-            <li>• Contact support if you're still having issues</li>
-          </ul>
-        </div>
-      </motion.div>
+export default function ConfirmEmailPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Suspense fallback={<ConfirmEmailLoading />}>
+        <ConfirmEmailContent />
+      </Suspense>
     </div>
   );
 } 

@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import socket from '@/lib/socket';
-import { useAuth } from '@/lib/context/auth-context';
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface UseSocketOptions {
   onConnect?: () => void;

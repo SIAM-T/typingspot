@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAuth } from '@/lib/context/auth-context';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {

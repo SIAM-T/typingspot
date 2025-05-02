@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from "@/lib/supabase/config";
 import type { CodeSnippet } from "@/lib/types/code-snippets";
 import { calculateWPM } from "@/lib/utils/text-generator";

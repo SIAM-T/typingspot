@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Suspense } from "react";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
-import { AuthProvider } from "@/lib/context/auth-context";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Navbar } from "@/components/layout/navbar";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,6 +24,14 @@ export const metadata: Metadata = {
   },
 };
 
+function AuthLoading() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  );
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -37,12 +46,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <Navbar />
-            <main className="min-h-screen bg-background">
-              {children}
-            </main>
-          </AuthProvider>
+          <Suspense fallback={<AuthLoading />}>
+            <AuthProvider>
+              <Navbar />
+              <main className="min-h-screen bg-background">
+                {children}
+              </main>
+            </AuthProvider>
+          </Suspense>
         </ThemeProvider>
         <Toaster />
       </body>

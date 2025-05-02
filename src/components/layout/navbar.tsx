@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from '@/components/providers/AuthProvider';
 import { UserMenu } from "@/components/auth/UserMenu";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";

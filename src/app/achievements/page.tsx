@@ -1,10 +1,23 @@
 import { Suspense } from "react";
-import { AchievementsGrid } from "@/components/achievements/AchievementsGrid";
+import { AchievementsContent } from "@/components/achievements/AchievementsContent";
 
 export const metadata = {
   title: "Achievements - TypingSpot",
   description: "Track your typing milestones and unlock achievements as you improve.",
 };
+
+function AchievementsLoading() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="h-32 rounded-lg border border-border bg-card animate-pulse"
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function AchievementsPage() {
   return (
@@ -14,23 +27,10 @@ export default function AchievementsPage() {
         <p className="text-muted-foreground text-center mb-8">
           Track your typing milestones and unlock achievements as you improve
         </p>
-        <Suspense fallback={<AchievementsLoadingFallback />}>
-          <AchievementsGrid />
+        <Suspense fallback={<AchievementsLoading />}>
+          <AchievementsContent />
         </Suspense>
       </div>
-    </div>
-  );
-}
-
-function AchievementsLoadingFallback() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {[...Array(6)].map((_, i) => (
-        <div
-          key={i}
-          className="h-32 rounded-lg border border-border bg-card animate-pulse"
-        />
-      ))}
     </div>
   );
 } 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from "@/components/providers/AuthProvider";
 import socket, { raceEvents } from "@/lib/socket";
 import type { RaceState, RaceParticipant } from "@/lib/types/race";
 import { useToast } from "@/components/ui/use-toast";

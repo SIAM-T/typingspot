@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/lib/context/auth-context';
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

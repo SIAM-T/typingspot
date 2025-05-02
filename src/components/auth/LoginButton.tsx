@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from '@/components/providers/AuthProvider';
 
 export function LoginButton() {
   const { user, signInWithGoogle, signOut } = useAuth();
