@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "concurrently \"next dev\" \"npm run dev:socket\"",
     "build": "next build",
-    "start": "next start",
+    "start": "concurrently \"next start\" \"tsx src/server/socket.ts\"",
     "lint": "next lint",
     "dev:socket": "tsx src/server/socket.ts"
   },
