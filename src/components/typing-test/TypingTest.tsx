@@ -56,7 +56,7 @@ export function TypingTest() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const lineHeight = 40; // Height of each line in pixels
-  const visibleLines = 3; // Number of lines to show at once
+  const visibleLines = 4; // Changed to show 4 lines
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -382,13 +382,14 @@ export function TypingTest() {
         </div>
       </div>
 
-      <div className="relative h-[120px] typing-text-container bg-card rounded-lg shadow-sm" ref={textContainerRef}>
+      <div className="relative h-[160px] typing-text-container bg-card rounded-lg shadow-sm" ref={textContainerRef}>
         <div
           className="font-mono text-2xl md:text-3xl whitespace-pre-wrap select-none p-8 typing-text-content"
           style={{
-            transform: `translateY(-${visibleTextStart * lineHeight}px)`,
+            transform: `translateY(-${Math.max(0, visibleTextStart * lineHeight)}px)`,
             transition: 'transform 0.2s ease-out'
           }}
+          aria-hidden="true"
         >
           {text.split('').map((char, index) => {
             const isTyped = index < input.length;
@@ -417,7 +418,7 @@ export function TypingTest() {
           ref={inputRef}
           value={input}
           onChange={handleInput}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-text typing-text-container"
+          className="absolute inset-0 w-full h-full opacity-30 cursor-text typing-text-container"
           style={{ resize: "none" }}
           autoCapitalize="off"
           autoComplete="off"

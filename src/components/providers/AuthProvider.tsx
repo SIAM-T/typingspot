@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase/config";
 import type { User } from "@supabase/supabase-js";
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useToast } from "@/components/ui/use-toast";
-import { sessionManager } from "@/lib/utils/session-manager";
+import { sessionManager } from "@/lib/auth/session-manager";
 
 interface AuthContextType {
   user: User | null;
@@ -44,6 +44,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Auth paths that should redirect to dashboard when logged in
   const authPaths = ['/login', '/signup', '/auth/reset-password'];
 
+  const createUserRecord = async (user: User) => {
+    try {
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (!existingUser) {
+        // Create username from email or Google name
+        const baseUsername = user.user_metadata.full_name?.toLowerCase().replace(/\s+/g, '_') || 
+                           user.email?.split('@')[0] || 
+                           'user';
+        let username = baseUsername;
+        let counter = 1;
+
+        // Check username availability
+        while (true) {
+          const { data: checkUser } = await supabase
+            .from('users')
+            .select('username')
+            .eq('username', username)
+            .single();
+
+          if (!checkUser) break;
+          username = `${baseUsername}${counter}`;
+          counter++;
+        }
+
+        // Create user record
+        await supabase.from('users').insert({
+          id: user.id,
+          username,
+          email: user.email,
+          display_name: user.user_metadata.full_name || username,
+          avatar_url: user.user_metadata.avatar_url || null,
+          created_at: new Date().toISOString(),
+          last_active: new Date().toISOString(),
+          total_tests: 0,
+          rank_points: 0
+        });
+
+        // Create default user settings
+        await supabase.from('user_settings').insert({
+          user_id: user.id,
+          settings: {
+            soundEnabled: true,
+            theme: 'system',
+            keyboardLayout: 'standard',
+            showLiveWPM: true,
+            showProgressBar: true
+          }
+        });
+
+        // Initialize achievements
+        await supabase.from('user_achievements').insert({
+          user_id: user.id,
+          achievements: [],
+          progress: {}
+        });
+      }
+    } catch (error) {
+      console.error('Error creating user record:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create user profile. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -59,11 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
 
         if (currentUser) {
+          await createUserRecord(currentUser);
+          
           if (pathname === '/') {
-            router.replace('https://typingspot.online/dashboard');
+            router.replace('/dashboard');
           } else if (authPaths.some(path => pathname.startsWith(path))) {
-            const redirectTo = searchParams.get('redirect') || 'https://typingspot.online/dashboard';
-            router.replace(redirectTo.startsWith('http') ? redirectTo : `https://typingspot.online${redirectTo}`);
+            const redirectTo = searchParams.get('redirect') || '/dashboard';
+            router.replace(redirectTo);
           }
         }
       } catch (error) {
@@ -77,21 +151,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       try {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const currentUser = sessionManager.getUser();
-        setUser(currentUser);
-
-        if (event === 'SIGNED_IN' && currentUser) {
+        if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user);
+          await createUserRecord(session.user);
           const redirectTo = searchParams.get('redirect') || '/dashboard';
-          router.replace(redirectTo.startsWith('http') ? redirectTo : `https://typingspot.online${redirectTo}`);
+          router.replace(redirectTo);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          router.replace('https://typingspot.online/login');
+          router.replace('/login');
         }
       } catch (error) {
         console.error("Error handling auth state change:", error);
@@ -111,10 +182,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
       if (error) throw error;
-
-      // Wait for session to be established
-      await new Promise(resolve => setTimeout(resolve, 100));
-      await sessionManager.forceSessionRefresh();
     } catch (error) {
       console.error("Error signing in:", error);
       throw error;
@@ -127,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: 'https://typingspot.online/auth/callback',
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         }
       });
       if (error) throw error;
@@ -146,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      router.replace("https://typingspot.online/login");
+      router.replace('/login');
     } catch (error) {
       console.error("Error signing out:", error);
       throw error;
@@ -156,9 +223,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://typingspot.online/auth/reset-password',
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
       if (error) throw error;
+
+      toast({
+        title: "Reset email sent",
+        description: "Please check your email to reset your password.",
+      });
     } catch (error) {
       console.error("Error resetting password:", error);
       throw error;
@@ -170,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://typingspot.online/auth/callback',
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -203,8 +275,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }; 
