@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
