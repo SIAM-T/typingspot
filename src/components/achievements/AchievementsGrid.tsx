@@ -4,23 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/config";
 import { useAuth } from "@/lib/context/auth-context";
-import type { Achievement, UserAchievement, AchievementProgress } from "@/lib/types/achievements";
-
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon_url: string;
-  required_score: number;
-  achievement_type: string;
-}
-
-interface UserAchievement {
-  id: string;
-  achievement: Achievement;
-  unlocked_at: string | null;
-  progress: number;
-}
+import type { Achievement, UserAchievement } from "@/lib/types/achievements";
 
 export function AchievementsGrid() {
   const { user } = useAuth();
@@ -157,19 +141,19 @@ export function AchievementsGrid() {
 
       {/* Achievements grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {filteredAchievements.map(({ achievement, isUnlocked, unlockedAt }) => (
+        {filteredAchievements.map(({ id, achievement, unlocked_at }) => (
           <motion.div
-            key={achievement.id}
+            key={id}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className={`p-4 rounded-lg ${
-              isUnlocked ? "bg-primary/10" : "bg-secondary/50"
+              unlocked_at ? "bg-primary/10" : "bg-secondary/50"
             }`}
           >
             <div className="flex items-center gap-3 mb-2">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  isUnlocked ? "bg-primary" : "bg-secondary"
+                  unlocked_at ? "bg-primary" : "bg-secondary"
                 }`}
               >
                 {achievement.icon_url ? (
@@ -189,9 +173,9 @@ export function AchievementsGrid() {
                 </p>
               </div>
             </div>
-            {isUnlocked && (
+            {unlocked_at && (
               <div className="text-xs text-muted-foreground mt-2">
-                Unlocked {new Date(unlockedAt!).toLocaleDateString()}
+                Unlocked {new Date(unlocked_at).toLocaleDateString()}
               </div>
             )}
           </motion.div>

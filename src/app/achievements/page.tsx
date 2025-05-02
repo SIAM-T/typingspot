@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AchievementsGrid } from "@/components/achievements/AchievementsGrid";
 
 export const metadata = {
@@ -13,8 +14,23 @@ export default function AchievementsPage() {
         <p className="text-muted-foreground text-center mb-8">
           Track your typing milestones and unlock achievements as you improve
         </p>
-        <AchievementsGrid />
+        <Suspense fallback={<AchievementsLoadingFallback />}>
+          <AchievementsGrid />
+        </Suspense>
       </div>
+    </div>
+  );
+}
+
+function AchievementsLoadingFallback() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="h-32 rounded-lg border border-border bg-card animate-pulse"
+        />
+      ))}
     </div>
   );
 } 
