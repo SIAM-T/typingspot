@@ -70,6 +70,7 @@ export function TypingTest() {
     setIsPaused(false);
     setResults(null);
     setCurrentCharIndex(0);
+    setVisibleTextStart(0);
     startTimeRef.current = 0;
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -103,12 +104,7 @@ export function TypingTest() {
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     
-    // Prevent typing if test is complete
-    if (results || !isTestActive) {
-      e.preventDefault();
-      return;
-    }
-
+    // Start test on first input
     if (!isTestActive && !isPaused && value.length === 1) {
       setIsTestActive(true);
       startTimeRef.current = Date.now();
@@ -123,13 +119,10 @@ export function TypingTest() {
         timestamp: Date.now() - startTimeRef.current,
         correct: isCorrect
       }]);
-    }
 
-    // Play sound based on correct/incorrect input
-    if (keyboardSounds && soundEnabled && !isPaused) {
-      if (value.length > input.length) {
-        const lastCharIndex = value.length - 1;
-        if (value[lastCharIndex] === text[lastCharIndex]) {
+      // Play sound based on correct/incorrect input
+      if (keyboardSounds && soundEnabled && !isPaused) {
+        if (isCorrect) {
           keyboardSounds.playKeyPress();
         } else {
           keyboardSounds.playError();
@@ -137,15 +130,13 @@ export function TypingTest() {
       }
     }
 
-    if (!isPaused) {
-      setInput(value);
-      setCurrentCharIndex(value.length);
-      updateVisibleText();
+    setInput(value);
+    setCurrentCharIndex(value.length);
+    updateVisibleText();
 
-      // Auto-end test if text is completed
-      if (value === text) {
-        endTest();
-      }
+    // Auto-end test if text is completed
+    if (value === text) {
+      endTest();
     }
   };
 
