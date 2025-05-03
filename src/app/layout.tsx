@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Suspense } from "react";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { AdminProvider } from "@/components/providers/AdminProvider";
 import { Navbar } from "@/components/layout/navbar";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -190,10 +191,12 @@ export default function RootLayout({
         >
           <Suspense fallback={<AuthLoading />}>
             <AuthProvider>
-              <Navbar />
-              <main className="min-h-screen bg-background">
-                {children}
-              </main>
+              <AdminProvider>
+                <Navbar />
+                <main className="min-h-screen bg-background">
+                  {children}
+                </main>
+              </AdminProvider>
             </AuthProvider>
           </Suspense>
         </ThemeProvider>

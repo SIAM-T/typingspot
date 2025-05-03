@@ -15,10 +15,13 @@ interface Word {
   category: WordCategory;
   isPowerUp?: boolean;
   powerUpType?: PowerUpType;
+  color?: string;
+  points?: number;
 }
 
-type WordCategory = "common" | "animals" | "food" | "countries" | "tech";
-type PowerUpType = "slowdown" | "clearScreen" | "doublePoints" | "shield";
+type WordCategory = "common" | "animals" | "food" | "countries" | "tech" | "programming" | "science";
+type PowerUpType = "slowdown" | "clearScreen" | "doublePoints" | "shield" | "timeFreezer" | "pointsBooster";
+type GameMode = "classic" | "zen" | "challenge" | "timeAttack";
 
 const CATEGORIES: Record<WordCategory, string[]> = {
   common: [
@@ -40,6 +43,14 @@ const CATEGORIES: Record<WordCategory, string[]> = {
   tech: [
     "code", "data", "web", "app", "cloud", "file", "link", "site", "blog", "chat",
     "game", "user", "post", "page", "mail", "tech", "byte", "node", "react", "vue"
+  ],
+  programming: [
+    "function", "class", "const", "let", "var", "if", "else", "for", "while", "return",
+    "import", "export", "async", "await", "try", "catch", "interface", "type", "enum"
+  ],
+  science: [
+    "atom", "cell", "dna", "energy", "force", "gravity", "mass", "molecule", "neutron",
+    "proton", "quantum", "theory", "velocity", "wave", "electron", "photon", "nucleus"
   ]
 };
 
@@ -47,7 +58,28 @@ const POWER_UPS: Record<PowerUpType, { color: string; effect: string }> = {
   slowdown: { color: "bg-blue-500", effect: "Slow down words" },
   clearScreen: { color: "bg-red-500", effect: "Clear all words" },
   doublePoints: { color: "bg-yellow-500", effect: "Double points" },
-  shield: { color: "bg-green-500", effect: "Temporary shield" }
+  shield: { color: "bg-green-500", effect: "Temporary shield" },
+  timeFreezer: { color: "bg-purple-500", effect: "Freeze time for 5 seconds" },
+  pointsBooster: { color: "bg-orange-500", effect: "5x points for next 10 words" }
+};
+
+const GAME_MODES: Record<GameMode, { name: string; description: string }> = {
+  classic: {
+    name: "Classic Mode",
+    description: "Type words before they reach the bottom. Game ends when a word hits the bottom."
+  },
+  zen: {
+    name: "Zen Mode",
+    description: "No game over, just practice and improve your typing speed."
+  },
+  challenge: {
+    name: "Challenge Mode",
+    description: "Words get progressively harder and faster. How long can you survive?"
+  },
+  timeAttack: {
+    name: "Time Attack",
+    description: "Type as many words as possible in 60 seconds."
+  }
 };
 
 export function WordRush() {
@@ -60,11 +92,22 @@ export function WordRush() {
   const [gameSpeed, setGameSpeed] = useState(1);
   const [difficulty, setDifficulty] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<WordCategory>("common");
+  const [selectedMode, setSelectedMode] = useState<GameMode>("classic");
   const [activePowerUps, setActivePowerUps] = useState<Set<PowerUpType>>(new Set());
   const [comboMultiplier, setComboMultiplier] = useState(1);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [pointsBoosterCount, setPointsBoosterCount] = useState(0);
   const [lastWordPosition, setLastWordPosition] = useState<{ x: number; y: number } | null>(null);
+  const [personalBest, setPersonalBest] = useState<Record<GameMode, number>>({
+    classic: 0,
+    zen: 0,
+    challenge: 0,
+    timeAttack: 0
+  });
+  
   const gameLoopRef = useRef<NodeJS.Timeout>();
   const powerUpTimeoutRef = useRef<NodeJS.Timeout>();
+  const timeAttackRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -75,6 +118,11 @@ export function WordRush() {
       Object.keys(POWER_UPS)[Math.floor(Math.random() * Object.keys(POWER_UPS).length)] as PowerUpType 
       : undefined;
 
+    // Calculate points based on word length and difficulty
+    const basePoints = Math.ceil(Math.random() * 5) * 10;
+    const lengthBonus = Math.floor(Math.random() * 3) * 5;
+    const difficultyBonus = difficulty * 10;
+
     return {
       id: Math.random(),
       text: wordList[Math.floor(Math.random() * wordList.length)],
@@ -82,7 +130,9 @@ export function WordRush() {
       speed: Math.random() * 0.5 + 0.5 * difficulty,
       category: selectedCategory,
       isPowerUp,
-      powerUpType
+      powerUpType,
+      color: isPowerUp ? POWER_UPS[powerUpType!].color : undefined,
+      points: basePoints + lengthBonus + difficultyBonus
     };
   };
 
@@ -102,6 +152,15 @@ export function WordRush() {
         break;
       case "shield":
         // Shield will prevent game over for its duration
+        break;
+      case "timeFreezer":
+        // Pause word movement for 5 seconds
+        setGameSpeed(0);
+        setTimeout(() => setGameSpeed(1), 5000);
+        break;
+      case "pointsBooster":
+        setPointsBoosterCount(10);
+        setComboMultiplier(5);
         break;
     }
 
@@ -128,6 +187,7 @@ export function WordRush() {
       // Reset effects
       switch (type) {
         case "slowdown":
+        case "timeFreezer":
           setGameSpeed(1);
           break;
         case "doublePoints":
@@ -147,7 +207,21 @@ export function WordRush() {
     setDifficulty(1);
     setComboMultiplier(1);
     setActivePowerUps(new Set());
+    setPointsBoosterCount(0);
     inputRef.current?.focus();
+
+    if (selectedMode === "timeAttack") {
+      setTimeLeft(60);
+      timeAttackRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            endGame();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
 
     // Start game loop
     gameLoopRef.current = setInterval(() => {
@@ -165,12 +239,17 @@ export function WordRush() {
 
         return movedWords;
       });
+
+      // Increase difficulty in challenge mode
+      if (selectedMode === "challenge") {
+        setDifficulty(prev => prev + 0.001);
+      }
     }, 50);
   };
 
   const endGame = () => {
-    // Don't end game if shield is active
-    if (activePowerUps.has("shield")) return;
+    // Don't end game if shield is active or in zen mode
+    if (activePowerUps.has("shield") || selectedMode === "zen") return;
 
     if (gameLoopRef.current) {
       clearInterval(gameLoopRef.current);
@@ -178,10 +257,28 @@ export function WordRush() {
     if (powerUpTimeoutRef.current) {
       clearTimeout(powerUpTimeoutRef.current);
     }
+    if (timeAttackRef.current) {
+      clearInterval(timeAttackRef.current);
+    }
+    
     setIsGameActive(false);
 
-    // Trigger confetti if score is high
-    if (score > 500) {
+    // Update personal best if score is higher
+    if (score > personalBest[selectedMode]) {
+      setPersonalBest(prev => ({
+        ...prev,
+        [selectedMode]: score
+      }));
+
+      // Trigger confetti for new personal best
+      void confetti({
+        particleCount: 150,
+        spread: 90,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FFA500', '#FF4500']
+      });
+    } else if (score > 500) {
+      // Trigger regular confetti for good score
       void confetti({
         particleCount: 100,
         spread: 70,
@@ -192,7 +289,7 @@ export function WordRush() {
 
     toast({
       title: "Game Over!",
-      description: `Final score: ${score} | Highest combo: ${highestCombo}x`,
+      description: `Final score: ${score} | Highest combo: ${highestCombo}x | Mode: ${GAME_MODES[selectedMode].name}`,
     });
   };
 

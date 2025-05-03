@@ -11,6 +11,8 @@ interface Game {
   difficulty: "easy" | "medium" | "hard";
   players: "single" | "multi";
   imageUrl: string;
+  modes?: string[];
+  features?: string[];
   comingSoon?: boolean;
 }
 
@@ -18,10 +20,22 @@ const games: Game[] = [
   {
     id: "word-rush",
     title: "Word Rush",
-    description: "Type words as they fall from the top of the screen. The faster you type, the higher your score!",
+    description: "Type words as they fall from the top of the screen. Multiple game modes and power-ups!",
     difficulty: "easy",
     players: "single",
     imageUrl: "/images/games/word-rush.png",
+    modes: [
+      "Classic Mode - Type before words hit bottom",
+      "Zen Mode - Practice without pressure",
+      "Challenge Mode - Progressive difficulty",
+      "Time Attack - 60 seconds to score"
+    ],
+    features: [
+      "7 Word Categories",
+      "6 Different Power-ups",
+      "Personal Best Tracking",
+      "Combo System"
+    ]
   },
   {
     id: "code-race",
@@ -30,6 +44,16 @@ const games: Game[] = [
     difficulty: "hard",
     players: "single",
     imageUrl: "/images/games/code-race.png",
+    modes: [
+      "Language-specific Challenges",
+      "Algorithm Practice",
+      "Code Review Mode"
+    ],
+    features: [
+      "Syntax Highlighting",
+      "Multiple Languages",
+      "Real Code Samples"
+    ]
   },
   {
     id: "type-battle",
@@ -38,6 +62,16 @@ const games: Game[] = [
     difficulty: "medium",
     players: "multi",
     imageUrl: "/images/games/type-battle.png",
+    modes: [
+      "1v1 Duels",
+      "Battle Royale",
+      "Team Matches"
+    ],
+    features: [
+      "Live Rankings",
+      "Chat System",
+      "Custom Rooms"
+    ]
   },
   {
     id: "word-blast",
@@ -46,7 +80,17 @@ const games: Game[] = [
     difficulty: "medium",
     players: "single",
     imageUrl: "/images/games/word-blast.png",
-    comingSoon: true,
+    modes: [
+      "Arcade Mode",
+      "Survival Mode",
+      "Speed Run"
+    ],
+    features: [
+      "Chain Reactions",
+      "Special Words",
+      "Power-ups"
+    ],
+    comingSoon: true
   },
   {
     id: "typing-defense",
@@ -55,7 +99,17 @@ const games: Game[] = [
     difficulty: "hard",
     players: "single",
     imageUrl: "/images/games/typing-defense.png",
-    comingSoon: true,
+    modes: [
+      "Campaign Mode",
+      "Endless Mode",
+      "Boss Battles"
+    ],
+    features: [
+      "Tower Defense",
+      "Upgrades System",
+      "Different Enemy Types"
+    ],
+    comingSoon: true
   },
 ];
 
@@ -142,8 +196,33 @@ export default function GamePage() {
                 <h3 className="text-2xl font-bold text-center">{game.title}</h3>
               </div>
             </div>
-            <div className="p-6 space-y-2">
+            <div className="p-6 space-y-4">
               <p className="text-muted-foreground">{game.description}</p>
+              
+              {/* Game Modes */}
+              {game.modes && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Game Modes:</h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground">
+                    {game.modes.map((mode, index) => (
+                      <li key={index}>{mode}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Features */}
+              {game.features && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Features:</h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground">
+                    {game.features.map((feature, index) => (
+                      <li key={index}>{feature}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="flex items-center gap-4 text-sm">
                 <span className="capitalize text-muted-foreground">
                   {game.difficulty}
@@ -152,6 +231,7 @@ export default function GamePage() {
                   {game.players === "multi" ? "Multiplayer" : "Single Player"}
                 </span>
               </div>
+              
               {game.comingSoon ? (
                 <div className="mt-4">
                   <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
@@ -160,7 +240,7 @@ export default function GamePage() {
                 </div>
               ) : (
                 <Link
-                  href={`/game/${game.id}`}
+                  href={`/${game.id}`}
                   className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   Play Now
