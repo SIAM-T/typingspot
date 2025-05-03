@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { TypingTest } from "@/components/typing-test/TypingTest"
+import { TypingTest } from "@/components/typing-test/TypingTest";
+import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 
 function TypingTestLoading() {
   return (
@@ -13,10 +14,12 @@ export default function TypingTestPage() {
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <Suspense fallback={<TypingTestLoading />}>
-          <TypingTest />
-        </Suspense>
+        <ErrorBoundary fallback={<div>Something went wrong. Please try again.</div>}>
+          <Suspense fallback={<TypingTestLoading />}>
+            <TypingTest />
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </main>
-  )
+  );
 } 

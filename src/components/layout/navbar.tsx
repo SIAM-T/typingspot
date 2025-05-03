@@ -6,17 +6,21 @@ import { UserMenu } from "@/components/auth/UserMenu";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useRouter } from "next/navigation";
 
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Games", href: "/games" },
   { name: "Typing Test", href: "/typing-test" },
   { name: "Practice", href: "/practice" },
+  { name: "Code Snippets", href: "/code-snippets" },
+  { name: "Race", href: "/race" },
   { name: "Leaderboard", href: "/leaderboard" },
 ];
 
 export function Navbar() {
   const { user, signInWithGoogle } = useAuth();
+  const router = useRouter();
 
   const handleGoogleSignIn = async () => {
     try {
@@ -51,7 +55,17 @@ export function Navbar() {
             {user ? (
               <UserMenu />
             ) : (
-              <Button onClick={handleGoogleSignIn}>Sign In</Button>
+              <div className="flex items-center space-x-2">
+                <Button variant="outline" onClick={() => router.push('/login')}>
+                  Login
+                </Button>
+                <Button variant="outline" onClick={() => router.push('/signup')}>
+                  Sign Up
+                </Button>
+                <Button onClick={handleGoogleSignIn}>
+                  Sign in with Google
+                </Button>
+              </div>
             )}
           </nav>
         </div>

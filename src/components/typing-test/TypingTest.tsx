@@ -102,41 +102,73 @@ export function TypingTest() {
 
   // Handle input changes
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    
-    // Start test on first input
-    if (!isTestActive && !isPaused && value.length === 1) {
-      setIsTestActive(true);
-      startTimeRef.current = Date.now();
-    }
+    try {
+      const value = e.target.value;
+      
+      // Start test on first input
+      if (!isTestActive && !isPaused && value.length === 1) {
+        setIsTestActive(true);
+        startTimeRef.current = Date.now();
+      }
 
-    // Record typing data
-    if (value.length > input.length) {
-      const newChar = value[value.length - 1];
-      const isCorrect = newChar === text[value.length - 1];
-      setTypingData(prev => [...prev, {
-        key: newChar,
-        timestamp: Date.now() - startTimeRef.current,
-        correct: isCorrect
-      }]);
+      // Record typing data
+      if (value.length > input.length) {
+        const newChar = value[value.length - 1];
+        const isCorrect = newChar === text[value.length - 1];
+        setTypingData(prev => [...prev, {
+          key: newChar,
+          timestamp: Date.now() - startTimeRef.current,
+          correct: isCorrect
+        }]);
 
-      // Play sound based on correct/incorrect input
-      if (keyboardSounds && soundEnabled && !isPaused) {
-        if (isCorrect) {
-          keyboardSounds.playKeyPress();
-        } else {
-          keyboardSounds.playError();
+        // Play sound based on correct/incorrect input
+        if (keyboardSounds && soundEnabled && !isPaused) {
+          if (isCorrect) {
+            keyboardSounds.playKeyPress();
+          } else {
+            keyboardSounds.playError();
+          }
         }
       }
+
+      setInput(value);
+      setCurrentCharIndex(value.length);
+      updateVisibleText();
+
+      // Auto-end test if text is completed
+      if (value === text) {
+        endTest();
+      }
+    } catch (error) {
+      console.error("Error handling input:", error);
+      toast({
+        title: "Error",
+        description: "Something went wrong while typing. Please try again.",
+        variant: "destructive"
+      });
     }
+  };
 
-    setInput(value);
-    setCurrentCharIndex(value.length);
-    updateVisibleText();
+  // Calculate current WPM safely
+  const calculateCurrentWPM = () => {
+    try {
+      if (!input.length || !testDuration || timeLeft >= testDuration) return 0;
+      return Math.round((input.length / 5) / ((testDuration - timeLeft) / 60));
+    } catch (error) {
+      console.error("Error calculating WPM:", error);
+      return 0;
+    }
+  };
 
-    // Auto-end test if text is completed
-    if (value === text) {
-      endTest();
+  // Calculate current accuracy safely
+  const calculateCurrentAccuracy = () => {
+    try {
+      if (!input.length) return 100;
+      const correctChars = input.split('').filter((char, i) => char === text[i]).length;
+      return Math.round((correctChars / input.length) * 100);
+    } catch (error) {
+      console.error("Error calculating accuracy:", error);
+      return 0;
     }
   };
 
@@ -376,7 +408,7 @@ export function TypingTest() {
       <div className="relative h-[160px] overflow-hidden bg-card rounded-lg">
         <div
           ref={textContainerRef}
-          className="font-mono text-2xl md:text-3xl whitespace-pre-wrap select-none p-8 typing-text-content"
+          className="absolute inset-0 font-mono text-2xl md:text-3xl whitespace-pre-wrap select-none p-8 typing-text-content"
           style={{
             transform: `translateY(-${Math.max(0, visibleTextStart * lineHeight)}px)`,
             transition: 'transform 0.2s ease-out'
@@ -410,7 +442,7 @@ export function TypingTest() {
           ref={inputRef}
           value={input}
           onChange={handleInput}
-          className="absolute inset-0 w-full h-full opacity-30 cursor-text resize-none p-8 font-mono text-2xl md:text-3xl"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-text resize-none p-8 font-mono text-2xl md:text-3xl"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
@@ -444,21 +476,19 @@ export function TypingTest() {
             <>
               <div className="p-4 rounded-lg bg-card">
                 <div className="text-3xl font-bold text-primary">
-                  {Math.round((input.length / 5) / ((testDuration - timeLeft) / 60))}
+                  {calculateCurrentWPM()}
                 </div>
                 <div className="text-sm text-muted-foreground">Current WPM</div>
               </div>
               <div className="p-4 rounded-lg bg-card">
                 <div className="text-3xl font-bold text-primary">
-                  {Math.round((input.length) / ((testDuration - timeLeft) / 60))}
+                  {Math.round((input.length || 0) / ((testDuration - timeLeft) / 60))}
                 </div>
                 <div className="text-sm text-muted-foreground">Current CPM</div>
               </div>
               <div className="p-4 rounded-lg bg-card">
                 <div className="text-3xl font-bold text-primary">
-                  {input.length > 0
-                    ? Math.round((input.split('').filter((char, i) => char === text[i]).length / input.length) * 100)
-                    : 100}%
+                  {calculateCurrentAccuracy()}%
                 </div>
                 <div className="text-sm text-muted-foreground">Current Accuracy</div>
               </div>
