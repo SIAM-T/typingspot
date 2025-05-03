@@ -23,12 +23,13 @@ export interface CodeSnippet {
   title: string;
   description: string;
   content: string;
-  language: ProgrammingLanguage;
+  language: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   created_at: string;
-  author_id: string;
-  likes: number;
-  times_completed: number;
+  updated_at: string;
+  user_id?: string;
+  is_public: boolean;
+  tags: string[];
 }
 
 export interface UserCodeSnippetProgress {

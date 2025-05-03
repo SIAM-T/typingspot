@@ -33,11 +33,15 @@ interface TestResults {
 
 type TestDuration = 15 | 30 | 60 | 300;
 
-export function TypingTest() {
+interface Props {
+  initialText?: string;
+}
+
+export function TypingTest({ initialText }: Props) {
   const [input, setInput] = useState("");
   const [isTestActive, setIsTestActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText || "");
   const [results, setResults] = useState<TestResults | null>(null);
   const [typingData, setTypingData] = useState<TypingData[]>([]);
   const [testDuration, setTestDuration] = useState<TestDuration>(60);
@@ -89,9 +93,13 @@ export function TypingTest() {
     const prefs = UserPreferencesManager.getPreferences();
     setTestDuration(prefs.lastTestDuration as TestDuration);
     setSoundEnabled(prefs.soundEnabled);
-    setText(generateText(testDuration === 300 ? 200 : 100));
+    if (initialText) {
+      setText(initialText);
+    } else {
+      setText(generateText(testDuration === 300 ? 200 : 100));
+    }
     setTimeLeft(testDuration);
-  }, []);
+  }, [initialText]);
 
   // End test function
   const endTest = useCallback(() => {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-interface Lesson {
+export interface Lesson {
   id: string;
   title: string;
   description: string;
@@ -13,7 +13,7 @@ interface Lesson {
   type: "basic" | "speed" | "accuracy" | "business" | "academic" | "creative" | "communication" | "numbers" | "general" | "medical" | "legal" | "journalism" | "social" | "finance" | "administrative";
 }
 
-const lessons: Lesson[] = [
+export const lessons: Lesson[] = [
   // Basic Skills
   {
     id: "home-row",
@@ -26,7 +26,7 @@ const lessons: Lesson[] = [
   {
     id: "top-row",
     title: "Top Row Training",
-    description: "Practice the top row keys (QWERTY UIOP) for faster typing",
+    description: "Practice typing with the top row keys (QWERTY UIOP)",
     difficulty: "beginner",
     duration: 5,
     type: "basic",
@@ -34,197 +34,97 @@ const lessons: Lesson[] = [
   {
     id: "bottom-row",
     title: "Bottom Row Basics",
-    description: "Learn the bottom row keys (ZXCV BNM) to complete your keyboard mastery",
+    description: "Learn to type efficiently with the bottom row keys (ZXCVBNM)",
     difficulty: "beginner",
     duration: 5,
     type: "basic",
   },
-
-  // Academic/Student Focus
   {
-    id: "essay-writing",
-    title: "Essay Writing",
-    description: "Practice typing academic essays with proper formatting and citations",
+    id: "numbers-symbols",
+    title: "Numbers & Symbols",
+    description: "Master typing numbers and common symbols",
     difficulty: "intermediate",
-    duration: 15,
-    type: "academic",
-  },
-  {
-    id: "research-notes",
-    title: "Research Notes",
-    description: "Quick note-taking exercises for lectures and research",
-    difficulty: "intermediate",
-    duration: 10,
-    type: "academic",
-  },
-  {
-    id: "bibliography",
-    title: "Bibliography Practice",
-    description: "Master typing academic references and citations quickly",
-    difficulty: "intermediate",
-    duration: 8,
-    type: "academic",
-  },
-  {
-    id: "scientific-terms",
-    title: "Scientific Terms",
-    description: "Practice typing common scientific and technical terminology",
-    difficulty: "advanced",
-    duration: 12,
-    type: "academic",
-  },
-
-  // Business Professional
-  {
-    id: "business-emails",
-    title: "Business Emails",
-    description: "Professional email composition and formatting",
-    difficulty: "intermediate",
-    duration: 10,
-    type: "business",
-  },
-  {
-    id: "meeting-minutes",
-    title: "Meeting Minutes",
-    description: "Quick and accurate note-taking for business meetings",
-    difficulty: "intermediate",
-    duration: 12,
-    type: "business",
-  },
-  {
-    id: "financial-data",
-    title: "Financial Data Entry",
-    description: "Practice typing numbers, currencies, and financial reports",
-    difficulty: "intermediate",
-    duration: 10,
+    duration: 7,
     type: "numbers",
   },
-  {
-    id: "business-reports",
-    title: "Business Reports",
-    description: "Type professional business reports and proposals",
-    difficulty: "advanced",
-    duration: 15,
-    type: "business",
-  },
 
-  // Creative Writing
-  {
-    id: "story-writing",
-    title: "Creative Writing",
-    description: "Practice typing creative stories and narratives",
-    difficulty: "intermediate",
-    duration: 15,
-    type: "creative",
-  },
-  {
-    id: "dialogue-practice",
-    title: "Dialogue Writing",
-    description: "Master typing natural dialogue with proper punctuation",
-    difficulty: "intermediate",
-    duration: 10,
-    type: "creative",
-  },
-  {
-    id: "poetry-typing",
-    title: "Poetry Format",
-    description: "Practice typing poetry with correct formatting",
-    difficulty: "intermediate",
-    duration: 8,
-    type: "creative",
-  },
-
-  // Communication
-  {
-    id: "formal-letters",
-    title: "Formal Letters",
-    description: "Type professional formal letters and correspondence",
-    difficulty: "intermediate",
-    duration: 10,
-    type: "communication",
-  },
-  {
-    id: "quick-emails",
-    title: "Quick Emails",
-    description: "Practice typing common email responses quickly",
-    difficulty: "beginner",
-    duration: 8,
-    type: "communication",
-  },
-  {
-    id: "customer-service",
-    title: "Customer Service",
-    description: "Type professional customer service responses",
-    difficulty: "intermediate",
-    duration: 10,
-    type: "communication",
-  },
-
-  // General Professional
-  {
-    id: "resume-cover",
-    title: "Resume & Cover Letters",
-    description: "Practice typing professional resumes and cover letters",
-    difficulty: "intermediate",
-    duration: 12,
-    type: "general",
-  },
-  {
-    id: "data-entry",
-    title: "Data Entry",
-    description: "Quick and accurate data entry practice",
-    difficulty: "beginner",
-    duration: 10,
-    type: "numbers",
-  },
-  {
-    id: "form-filling",
-    title: "Form Filling",
-    description: "Practice filling out common forms and applications",
-    difficulty: "beginner",
-    duration: 8,
-    type: "general",
-  },
-
-  // Speed and Accuracy
+  // Speed Training
   {
     id: "speed-drills",
-    title: "Speed Building",
-    description: "Progressive exercises to increase typing speed",
+    title: "Speed Drills",
+    description: "Quick exercises to improve your typing speed",
     difficulty: "intermediate",
-    duration: 10,
+    duration: 3,
     type: "speed",
   },
   {
-    id: "accuracy-focus",
-    title: "Accuracy Training",
-    description: "Exercises focused on 100% accuracy",
+    id: "rapid-words",
+    title: "Rapid Words Challenge",
+    description: "Type common words as quickly as possible",
+    difficulty: "intermediate",
+    duration: 5,
+    type: "speed",
+  },
+
+  // Accuracy Training
+  {
+    id: "precision-practice",
+    title: "Precision Practice",
+    description: "Focus on accuracy with challenging word combinations",
     difficulty: "intermediate",
     duration: 10,
     type: "accuracy",
   },
   {
-    id: "number-mastery",
-    title: "Number Mastery",
-    description: "Practice typing numbers and numerical data quickly",
-    difficulty: "intermediate",
-    duration: 8,
-    type: "numbers",
-  },
-  {
-    id: "advanced-speed",
-    title: "Advanced Speed",
-    description: "High-speed typing drills for experienced typists",
+    id: "error-reduction",
+    title: "Error Reduction",
+    description: "Exercises designed to minimize typing mistakes",
     difficulty: "advanced",
     duration: 15,
-    type: "speed",
+    type: "accuracy",
   },
 
-  // Medical Field
+  // Business
+  {
+    id: "business-correspondence",
+    title: "Business Correspondence",
+    description: "Practice typing professional emails and letters",
+    difficulty: "intermediate",
+    duration: 10,
+    type: "business",
+  },
+  {
+    id: "business-terms",
+    title: "Business Terminology",
+    description: "Common business terms and phrases",
+    difficulty: "intermediate",
+    duration: 8,
+    type: "business",
+  },
+
+  // Academic
+  {
+    id: "academic-writing",
+    title: "Academic Writing",
+    description: "Practice typing scholarly content and citations",
+    difficulty: "advanced",
+    duration: 12,
+    type: "academic",
+  },
+  {
+    id: "research-terms",
+    title: "Research Terminology",
+    description: "Common terms used in academic research",
+    difficulty: "advanced",
+    duration: 10,
+    type: "academic",
+  },
+
+  // Medical
   {
     id: "medical-terms",
     title: "Medical Terminology",
-    description: "Practice typing common medical terms and abbreviations",
+    description: "Common medical terms and abbreviations",
     difficulty: "advanced",
     duration: 15,
     type: "medical",
@@ -232,33 +132,17 @@ const lessons: Lesson[] = [
   {
     id: "patient-records",
     title: "Patient Records",
-    description: "Practice typing patient medical records and histories",
-    difficulty: "intermediate",
+    description: "Practice typing patient information and medical reports",
+    difficulty: "advanced",
     duration: 12,
     type: "medical",
   },
-  {
-    id: "prescription-writing",
-    title: "Prescription Writing",
-    description: "Learn to type medical prescriptions accurately",
-    difficulty: "advanced",
-    duration: 10,
-    type: "medical",
-  },
-  {
-    id: "medical-reports",
-    title: "Medical Reports",
-    description: "Type detailed medical reports and diagnoses",
-    difficulty: "advanced",
-    duration: 15,
-    type: "medical",
-  },
 
-  // Legal Profession
+  // Legal
   {
     id: "legal-terms",
     title: "Legal Terminology",
-    description: "Master common legal terms and phrases",
+    description: "Common legal terms and phrases",
     difficulty: "advanced",
     duration: 12,
     type: "legal",
@@ -266,231 +150,137 @@ const lessons: Lesson[] = [
   {
     id: "legal-documents",
     title: "Legal Documents",
-    description: "Practice typing contracts and legal documents",
+    description: "Practice typing contracts and legal correspondence",
     difficulty: "advanced",
     duration: 15,
-    type: "legal",
-  },
-  {
-    id: "court-transcripts",
-    title: "Court Transcripts",
-    description: "Quick and accurate court proceeding transcription",
-    difficulty: "advanced",
-    duration: 20,
-    type: "legal",
-  },
-  {
-    id: "case-briefs",
-    title: "Case Briefs",
-    description: "Practice typing legal case summaries and briefs",
-    difficulty: "intermediate",
-    duration: 12,
     type: "legal",
   },
 
   // Journalism
   {
-    id: "news-articles",
-    title: "News Articles",
-    description: "Write news articles with proper formatting",
+    id: "news-writing",
+    title: "News Writing",
+    description: "Practice typing news articles and headlines",
     difficulty: "intermediate",
-    duration: 15,
+    duration: 10,
     type: "journalism",
   },
   {
     id: "interview-transcription",
     title: "Interview Transcription",
-    description: "Practice transcribing interview recordings",
-    difficulty: "intermediate",
-    duration: 12,
-    type: "journalism",
-  },
-  {
-    id: "press-releases",
-    title: "Press Releases",
-    description: "Create professional press releases",
-    difficulty: "intermediate",
-    duration: 10,
-    type: "journalism",
-  },
-  {
-    id: "feature-stories",
-    title: "Feature Stories",
-    description: "Type engaging feature stories and long-form articles",
+    description: "Transcribe interview recordings accurately",
     difficulty: "advanced",
-    duration: 20,
+    duration: 15,
     type: "journalism",
   },
 
-  // Social Media & Marketing
+  // Social Media
   {
     id: "social-posts",
     title: "Social Media Posts",
     description: "Create engaging social media content quickly",
     difficulty: "beginner",
-    duration: 8,
+    duration: 5,
     type: "social",
   },
   {
-    id: "marketing-copy",
-    title: "Marketing Copy",
-    description: "Write persuasive marketing content",
-    difficulty: "intermediate",
-    duration: 12,
-    type: "social",
-  },
-  {
-    id: "product-descriptions",
-    title: "Product Descriptions",
-    description: "Create compelling product descriptions",
-    difficulty: "intermediate",
-    duration: 10,
-    type: "social",
-  },
-  {
-    id: "campaign-planning",
-    title: "Campaign Planning",
-    description: "Type marketing campaign plans and strategies",
-    difficulty: "advanced",
-    duration: 15,
+    id: "hashtag-mastery",
+    title: "Hashtag Mastery",
+    description: "Practice typing trending hashtags and social media terms",
+    difficulty: "beginner",
+    duration: 5,
     type: "social",
   },
 
-  // Financial Sector
+  // Finance
   {
-    id: "financial-reports",
-    title: "Financial Reports",
-    description: "Type detailed financial reports and analyses",
+    id: "financial-terms",
+    title: "Financial Terminology",
+    description: "Common financial terms and expressions",
     difficulty: "advanced",
-    duration: 15,
-    type: "finance",
-  },
-  {
-    id: "investment-summaries",
-    title: "Investment Summaries",
-    description: "Create investment reports and recommendations",
-    difficulty: "advanced",
-    duration: 12,
-    type: "finance",
-  },
-  {
-    id: "banking-documents",
-    title: "Banking Documents",
-    description: "Practice typing banking forms and documents",
-    difficulty: "intermediate",
     duration: 10,
     type: "finance",
   },
   {
-    id: "tax-documents",
-    title: "Tax Documentation",
-    description: "Accurate typing of tax forms and reports",
+    id: "financial-reports",
+    title: "Financial Reports",
+    description: "Practice typing financial statements and reports",
     difficulty: "advanced",
-    duration: 12,
+    duration: 15,
     type: "finance",
   },
 
   // Administrative
   {
-    id: "scheduling",
-    title: "Scheduling & Calendar",
-    description: "Quick appointment and schedule management",
-    difficulty: "beginner",
-    duration: 8,
-    type: "administrative",
-  },
-  {
-    id: "office-memos",
-    title: "Office Memos",
-    description: "Create clear and concise office memorandums",
+    id: "data-entry",
+    title: "Data Entry",
+    description: "Practice accurate and fast data entry",
     difficulty: "intermediate",
-    duration: 10,
-    type: "administrative",
-  },
-  {
-    id: "inventory-lists",
-    title: "Inventory Management",
-    description: "Practice typing inventory lists and orders",
-    difficulty: "beginner",
     duration: 8,
     type: "administrative",
   },
   {
-    id: "travel-planning",
-    title: "Travel Planning",
-    description: "Type travel itineraries and arrangements",
+    id: "office-correspondence",
+    title: "Office Correspondence",
+    description: "Type common office communications efficiently",
     difficulty: "intermediate",
     duration: 10,
     type: "administrative",
   },
 
-  // Academic Extensions
+  // Creative Writing
   {
-    id: "thesis-writing",
-    title: "Thesis Writing",
-    description: "Practice typing academic thesis content",
-    difficulty: "advanced",
-    duration: 20,
-    type: "academic",
-  },
-  {
-    id: "lab-reports",
-    title: "Lab Reports",
-    description: "Type scientific lab reports and procedures",
-    difficulty: "advanced",
-    duration: 15,
-    type: "academic",
-  },
-  {
-    id: "lecture-notes",
-    title: "Lecture Notes",
-    description: "Quick and organized lecture note-taking",
+    id: "creative-prompts",
+    title: "Creative Writing Prompts",
+    description: "Practice typing creative stories and descriptions",
     difficulty: "intermediate",
     duration: 12,
-    type: "academic",
+    type: "creative",
   },
   {
-    id: "academic-proposals",
-    title: "Research Proposals",
-    description: "Write academic research proposals",
-    difficulty: "advanced",
-    duration: 15,
-    type: "academic",
-  },
-
-  // Business Extensions
-  {
-    id: "project-proposals",
-    title: "Project Proposals",
-    description: "Create detailed project proposals",
-    difficulty: "advanced",
-    duration: 15,
-    type: "business",
-  },
-  {
-    id: "business-plans",
-    title: "Business Plans",
-    description: "Type comprehensive business plans",
-    difficulty: "advanced",
-    duration: 20,
-    type: "business",
-  },
-  {
-    id: "sales-reports",
-    title: "Sales Reports",
-    description: "Create sales performance reports",
-    difficulty: "intermediate",
-    duration: 12,
-    type: "business",
-  },
-  {
-    id: "vendor-communications",
-    title: "Vendor Communications",
-    description: "Professional vendor emails and documents",
+    id: "poetry-prose",
+    title: "Poetry & Prose",
+    description: "Type various forms of creative writing",
     difficulty: "intermediate",
     duration: 10,
-    type: "business",
-  }
+    type: "creative",
+  },
+
+  // Communication
+  {
+    id: "email-etiquette",
+    title: "Email Etiquette",
+    description: "Practice professional email communication",
+    difficulty: "intermediate",
+    duration: 8,
+    type: "communication",
+  },
+  {
+    id: "instant-messaging",
+    title: "Instant Messaging",
+    description: "Quick and accurate typing for chat communications",
+    difficulty: "beginner",
+    duration: 5,
+    type: "communication",
+  },
+
+  // General Professional
+  {
+    id: "professional-vocab",
+    title: "Professional Vocabulary",
+    description: "Common professional terms across industries",
+    difficulty: "intermediate",
+    duration: 10,
+    type: "general",
+  },
+  {
+    id: "report-writing",
+    title: "Report Writing",
+    description: "Practice typing various professional reports",
+    difficulty: "advanced",
+    duration: 12,
+    type: "general",
+  },
 ];
 
 export default function PracticePage() {
@@ -502,21 +292,6 @@ export default function PracticePage() {
     if (selectedDifficulty !== "all" && lesson.difficulty !== selectedDifficulty) return false;
     return true;
   });
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
 
   return (
     <div className="container py-8 space-y-8">
@@ -571,16 +346,11 @@ export default function PracticePage() {
       </div>
 
       {/* Lessons Grid */}
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-      >
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredLessons.map((lesson) => (
-          <motion.div
+          <Link
             key={lesson.id}
-            variants={item}
+            href={`/practice/${lesson.id}`}
             className="group relative rounded-lg border border-border p-6 hover:border-primary transition-colors"
           >
             <div className="space-y-2">
@@ -598,15 +368,9 @@ export default function PracticePage() {
                 </span>
               </div>
             </div>
-            <Link
-              href={`/practice/${lesson.id}`}
-              className="absolute inset-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            >
-              <span className="sr-only">Start lesson</span>
-            </Link>
-          </motion.div>
+          </Link>
         ))}
-      </motion.div>
+      </div>
 
       {filteredLessons.length === 0 && (
         <div className="text-center py-12">

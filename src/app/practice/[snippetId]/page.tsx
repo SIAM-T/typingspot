@@ -1,6 +1,7 @@
-import { CodeTypingTest } from "./CodeTypingTest";
-import { supabase } from "@/lib/supabase/config";
 import { notFound } from "next/navigation";
+import { lessons, Lesson } from "../page";
+import { supabase } from "@/lib/supabase/config";
+import { PracticeContent } from "./PracticeContent";
 
 interface Props {
   params: {
@@ -9,10 +10,14 @@ interface Props {
 }
 
 export default async function PracticePage({ params }: Props) {
-  if (!params?.snippetId) {
-    notFound();
+  // First try to find a lesson
+  const lesson = lessons.find((l: Lesson) => l.id === params.snippetId);
+
+  if (lesson) {
+    return <PracticeContent lesson={lesson} />;
   }
 
+  // If no lesson found, try to find a code snippet
   const { data: snippet, error } = await supabase
     .from("code_snippets")
     .select("*")
@@ -23,23 +28,5 @@ export default async function PracticePage({ params }: Props) {
     notFound();
   }
 
-  return (
-    <div className="container py-8 md:py-12">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-2">{snippet.title}</h1>
-        <p className="text-muted-foreground mb-8">{snippet.description}</p>
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <span className="px-3 py-1 rounded-full text-xs bg-secondary capitalize">
-              {snippet.language}
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs bg-secondary capitalize">
-              {snippet.difficulty}
-            </span>
-          </div>
-          <CodeTypingTest snippet={snippet} />
-        </div>
-      </div>
-    </div>
-  );
+  return <PracticeContent snippet={snippet} />;
 } 
