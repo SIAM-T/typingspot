@@ -3,7 +3,7 @@ import { ResetPassword } from '@/components/auth/ResetPassword';
 
 function ResetPasswordLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="flex items-center justify-center min-h-[400px]">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
     </div>
   );
@@ -11,12 +11,12 @@ function ResetPasswordLoading() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="container flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <main className="container flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
+      <div className="w-full max-w-md">
         <Suspense fallback={<ResetPasswordLoading />}>
           <ResetPassword />
         </Suspense>
       </div>
-    </div>
+    </main>
   );
 }

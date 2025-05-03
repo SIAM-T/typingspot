@@ -382,8 +382,9 @@ export function TypingTest() {
         </div>
       </div>
 
-      <div className="relative h-[160px] typing-text-container bg-card rounded-lg shadow-sm" ref={textContainerRef}>
+      <div className="relative h-[160px] overflow-hidden bg-card rounded-lg">
         <div
+          ref={textContainerRef}
           className="font-mono text-2xl md:text-3xl whitespace-pre-wrap select-none p-8 typing-text-content"
           style={{
             transform: `translateY(-${Math.max(0, visibleTextStart * lineHeight)}px)`,
@@ -418,8 +419,7 @@ export function TypingTest() {
           ref={inputRef}
           value={input}
           onChange={handleInput}
-          className="absolute inset-0 w-full h-full opacity-30 cursor-text typing-text-container"
-          style={{ resize: "none" }}
+          className="absolute inset-0 w-full h-full opacity-30 cursor-text resize-none p-8 font-mono text-2xl md:text-3xl"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"

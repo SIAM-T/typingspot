@@ -1,22 +1,19 @@
 "use client";
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/config';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
-  identifier: z.string().min(1, 'Please enter your username or email'),
+  identifier: z.string().min(1, 'Please enter your email'),
   password: z.string().min(1, 'Please enter your password'),
 });
 
@@ -28,6 +25,7 @@ export function LoginContent() {
   const { signIn } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -42,7 +40,7 @@ export function LoginContent() {
       setIsLoading(true);
       await signIn(data.identifier, data.password);
 
-      const redirectTo = searchParams.get('redirect') || '/';
+      const redirectTo = searchParams.get('redirect') || '/dashboard';
       router.push(redirectTo);
     } catch (error: any) {
       console.error('Error signing in:', error);
@@ -57,64 +55,69 @@ export function LoginContent() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-md space-y-8"
-    >
-      <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Sign in to your account to continue
+    <div className="space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your email and password to sign in
         </p>
       </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="identifier">Username or Email</Label>
           <Input
-            id="identifier"
             {...register('identifier')}
-            className={errors.identifier ? 'border-destructive' : ''}
-            placeholder="Enter your username or email"
+            type="email"
+            placeholder="name@example.com"
+            autoComplete="email"
+            disabled={isLoading}
           />
           {errors.identifier && (
             <p className="text-sm text-destructive">{errors.identifier.message}</p>
           )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            {...register('password')}
-            className={errors.password ? 'border-destructive' : ''}
-          />
+          <div className="relative">
+            <Input
+              {...register('password')}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           {errors.password && (
             <p className="text-sm text-destructive">{errors.password.message}</p>
           )}
         </div>
-
+        <div className="flex items-center justify-end">
+          <Link
+            href="/auth/forgot-password"
+            className="text-sm text-muted-foreground hover:text-primary"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Signing in...
-            </>
-          ) : (
-            'Sign in'
-          )}
+          {isLoading ? 'Signing in...' : 'Sign In'}
         </Button>
       </form>
-
-      <p className="text-center text-sm text-muted-foreground">
+      <div className="text-center text-sm">
         Don't have an account?{' '}
-        <Link href="/signup" className="font-medium text-primary hover:underline">
+        <Link href="/signup" className="text-primary hover:underline">
           Sign up
         </Link>
-      </p>
-    </motion.div>
+      </div>
+    </div>
   );
 } 

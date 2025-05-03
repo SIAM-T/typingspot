@@ -1,9 +1,9 @@
-import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
-import { Suspense } from 'react';
+import { Suspense } from "react";
+import { ForgotPassword } from "@/components/auth/ForgotPassword";
 
 function ForgotPasswordLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="flex items-center justify-center min-h-[400px]">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
     </div>
   );
@@ -11,10 +11,12 @@ function ForgotPasswordLoading() {
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Suspense fallback={<ForgotPasswordLoading />}>
-        <ForgotPasswordForm />
-      </Suspense>
-    </div>
+    <main className="container flex items-center justify-center min-h-[calc(100vh-4rem)] px-4">
+      <div className="w-full max-w-md">
+        <Suspense fallback={<ForgotPasswordLoading />}>
+          <ForgotPassword />
+        </Suspense>
+      </div>
+    </main>
   );
 } 

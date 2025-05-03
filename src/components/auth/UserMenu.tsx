@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from '@/components/providers/AuthProvider';
-import { LoginButton } from "./LoginButton";
+import { Button } from "@/components/ui/button";
 
 export function UserMenu() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   if (loading) {
@@ -16,8 +16,20 @@ export function UserMenu() {
   }
 
   if (!user) {
-    return <LoginButton />;
+    return (
+      <Button onClick={() => window.location.href = '/login'}>
+        Sign In
+      </Button>
+    );
   }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <div className="relative">
@@ -67,7 +79,12 @@ export function UserMenu() {
             >
               Settings
             </Link>
-            <LoginButton />
+            <button
+              onClick={handleSignOut}
+              className="block w-full px-4 py-2 text-sm text-destructive hover:bg-secondary transition-colors text-left"
+            >
+              Sign Out
+            </button>
           </nav>
         </div>
       )}
