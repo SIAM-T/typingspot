@@ -38,7 +38,7 @@ interface User {
 }
 
 export default function UsersPage() {
-  const { users, fetchUsers, deleteUser, updateUserRole, isSuperAdmin } = useAdmin();
+  const { users, fetchUsers, deleteUser, updateUserRole, promoteToSuperAdmin, isSuperAdmin } = useAdmin();
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -95,6 +95,27 @@ export default function UsersPage() {
       toast({
         title: 'Error',
         description: 'Failed to update user role',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePromoteToSuperAdmin = async (userId: string) => {
+    if (!confirm('Are you sure you want to promote this user to super admin? This action grants full system access.')) {
+      return;
+    }
+
+    try {
+      await promoteToSuperAdmin(userId);
+      toast({
+        title: 'Success',
+        description: 'User promoted to super admin successfully',
+      });
+    } catch (error) {
+      console.error('Error promoting user:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to promote user to super admin',
         variant: 'destructive',
       });
     }
@@ -164,6 +185,13 @@ export default function UsersPage() {
                     <DropdownMenuContent align="end">
                       {isSuperAdmin && (
                         <>
+                          <DropdownMenuItem
+                            onClick={() => handlePromoteToSuperAdmin(user.id)}
+                            className="text-purple-600"
+                          >
+                            <Shield className="mr-2 h-4 w-4" />
+                            Make Super Admin
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleUpdateRole(user.id, 'admin')}
                           >

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAdmin } from '@/components/providers/AdminProvider';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Card } from '@/components/ui/card';
 import {
@@ -13,180 +14,177 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-interface DashboardStats {
-  totalUsers: number;
-  activeToday: number;
-  averageWPM: number;
-  totalTests: number;
-  recentSignups: number;
-  pendingReports: number;
+interface AdminStats {
+  total_users: number;
+  total_tests: number;
+  average_wpm: number;
+  active_users_today: number;
+}
+
+interface UserData {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at: string;
+  total_tests: number;
+  average_wpm: number;
 }
 
 export default function AdminDashboard() {
-  const { isAdmin, isSuperAdmin } = useAdmin();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalUsers: 0,
-    activeToday: 0,
-    averageWPM: 0,
-    totalTests: 0,
-    recentSignups: 0,
-    pendingReports: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
-    fetchDashboardStats();
-  }, []);
-
-  const fetchDashboardStats = async () => {
-    try {
-      // Get total users
-      const { count: totalUsers } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true });
-
-      // Get active users today
-      const { count: activeToday } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .gte('last_active', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
-
-      // Get average WPM
-      const { data: wpmData } = await supabase
-        .from('users')
-        .select('average_wpm')
-        .not('average_wpm', 'eq', 0);
-      
-      const averageWPM = wpmData
-        ? wpmData.reduce((acc, curr) => acc + curr.average_wpm, 0) / wpmData.length
-        : 0;
-
-      // Get total tests
-      const { count: totalTests } = await supabase
-        .from('typing_tests')
-        .select('*', { count: 'exact', head: true });
-
-      // Get recent signups (last 24 hours)
-      const { count: recentSignups } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-
-      // Get pending reports (if you have a reports feature)
-      const { count: pendingReports } = await supabase
-        .from('reports')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      setStats({
-        totalUsers: totalUsers || 0,
-        activeToday: activeToday || 0,
-        averageWPM: Math.round(averageWPM) || 0,
-        totalTests: totalTests || 0,
-        recentSignups: recentSignups || 0,
-        pendingReports: pendingReports || 0,
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-    } finally {
-      setLoading(false);
+    if (!loading && !user) {
+      router.replace('/login');
+      return;
     }
-  };
 
-  if (loading) {
+    async function checkAdminStatus() {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('admin_roles')
+          .select('role_name')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) throw error;
+        setIsAdmin(data?.role_name === 'super_admin');
+        
+        if (!data || data.role_name !== 'super_admin') {
+          router.replace('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        router.replace('/dashboard');
+      }
+    }
+
+    checkAdminStatus();
+  }, [user, loading, router, supabase]);
+
+  useEffect(() => {
+    async function fetchAdminData() {
+      if (!user || !isAdmin) return;
+
+      try {
+        // Fetch overall stats
+        const { data: statsData } = await supabase
+          .rpc('get_admin_stats');
+
+        if (statsData) {
+          setStats(statsData);
+        }
+
+        // Fetch user data
+        const { data: userData } = await supabase
+          .from('auth.users')
+          .select(`
+            id,
+            email,
+            created_at,
+            last_sign_in_at,
+            user_typing_stats!inner(
+              total_tests,
+              average_wpm
+            )
+          `)
+          .order('user_typing_stats.total_tests', { ascending: false })
+          .limit(100);
+
+        if (userData) {
+          const formattedUsers = userData.map(user => ({
+            id: user.id,
+            email: user.email,
+            created_at: user.created_at,
+            last_sign_in_at: user.last_sign_in_at,
+            total_tests: user.user_typing_stats?.[0]?.total_tests || 0,
+            average_wpm: user.user_typing_stats?.[0]?.average_wpm || 0
+          }));
+          setUsers(formattedUsers);
+        }
+      } catch (error) {
+        console.error('Error fetching admin data:', error);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+
+    if (isAdmin) {
+      fetchAdminData();
+    }
+  }, [user, isAdmin, supabase]);
+
+  if (loading || loadingData || !isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold">Loading dashboard...</h2>
+          <h2 className="text-2xl font-semibold">Loading...</h2>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Dashboard Overview</h1>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="mb-6 text-3xl font-bold">Admin Dashboard</h1>
+      
+      {/* Overall Stats */}
+      <div className="mb-8 grid gap-6 md:grid-cols-4">
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <h3 className="text-lg font-medium">Total Users</h3>
+          <p className="mt-2 text-3xl font-bold">{stats?.total_users || 0}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <h3 className="text-lg font-medium">Total Tests</h3>
+          <p className="mt-2 text-3xl font-bold">{stats?.total_tests || 0}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <h3 className="text-lg font-medium">Average WPM</h3>
+          <p className="mt-2 text-3xl font-bold">{stats?.average_wpm || 0}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <h3 className="text-lg font-medium">Active Users Today</h3>
+          <p className="mt-2 text-3xl font-bold">{stats?.active_users_today || 0}</p>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Total Users */}
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-primary/10 rounded-full">
-              <Users className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Users</p>
-              <h3 className="text-2xl font-bold">{stats.totalUsers}</h3>
-            </div>
-          </div>
-        </Card>
-
-        {/* Active Today */}
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-green-500/10 rounded-full">
-              <Activity className="w-6 h-6 text-green-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Active Today</p>
-              <h3 className="text-2xl font-bold">{stats.activeToday}</h3>
-            </div>
-          </div>
-        </Card>
-
-        {/* Average WPM */}
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-blue-500/10 rounded-full">
-              <TrendingUp className="w-6 h-6 text-blue-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Average WPM</p>
-              <h3 className="text-2xl font-bold">{stats.averageWPM}</h3>
-            </div>
-          </div>
-        </Card>
-
-        {/* Total Tests */}
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-purple-500/10 rounded-full">
-              <Trophy className="w-6 h-6 text-purple-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Tests</p>
-              <h3 className="text-2xl font-bold">{stats.totalTests}</h3>
-            </div>
-          </div>
-        </Card>
-
-        {/* Recent Signups */}
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-orange-500/10 rounded-full">
-              <Clock className="w-6 h-6 text-orange-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">New Users (24h)</p>
-              <h3 className="text-2xl font-bold">{stats.recentSignups}</h3>
-            </div>
-          </div>
-        </Card>
-
-        {/* Pending Reports */}
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-red-500/10 rounded-full">
-              <AlertCircle className="w-6 h-6 text-red-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Pending Reports</p>
-              <h3 className="text-2xl font-bold">{stats.pendingReports}</h3>
-            </div>
-          </div>
-        </Card>
+      {/* User Table */}
+      <div className="rounded-lg border bg-card shadow">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold">User Statistics</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="p-4 text-left font-medium">Email</th>
+                <th className="p-4 text-left font-medium">Joined</th>
+                <th className="p-4 text-left font-medium">Last Active</th>
+                <th className="p-4 text-left font-medium">Total Tests</th>
+                <th className="p-4 text-left font-medium">Avg WPM</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id} className="border-b">
+                  <td className="p-4">{user.email}</td>
+                  <td className="p-4">{new Date(user.created_at).toLocaleDateString()}</td>
+                  <td className="p-4">{new Date(user.last_sign_in_at).toLocaleDateString()}</td>
+                  <td className="p-4">{user.total_tests}</td>
+                  <td className="p-4">{Math.round(user.average_wpm || 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ interface AdminContextType {
   fetchUsers: () => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
   updateUserRole: (userId: string, role: string) => Promise<void>;
+  promoteToSuperAdmin: (userId: string) => Promise<void>;
   getAuditLogs: () => Promise<any[]>;
 }
 
@@ -26,6 +27,7 @@ const AdminContext = createContext<AdminContextType>({
   fetchUsers: async () => {},
   deleteUser: async () => {},
   updateUserRole: async () => {},
+  promoteToSuperAdmin: async () => {},
   getAuditLogs: async () => [],
 });
 
@@ -150,6 +152,28 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const promoteToSuperAdmin = async (userId: string) => {
+    if (!isSuperAdmin) {
+      throw new Error('Only super admins can promote users to super admin');
+    }
+
+    try {
+      // Call the database function to promote the user
+      const { error } = await supabase.rpc('promote_to_super_admin', {
+        target_user_id: userId,
+        admin_user_id: user?.id
+      });
+
+      if (error) throw error;
+
+      // Refresh the users list
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error promoting user to super admin:', error);
+      throw error;
+    }
+  };
+
   const getAuditLogs = async () => {
     if (!isAdmin && !isSuperAdmin) return [];
 
@@ -184,6 +208,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         fetchUsers,
         deleteUser,
         updateUserRole,
+        promoteToSuperAdmin,
         getAuditLogs,
       }}
     >

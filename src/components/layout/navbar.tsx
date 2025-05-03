@@ -5,26 +5,60 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { UserMenu } from "@/components/auth/UserMenu";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-const navigation = [
-  { name: "Home", href: "/" },
-  { name: "Games", href: "/games" },
-  { name: "Typing Test", href: "/typing-test" },
-  { name: "Practice", href: "/practice" },
-  { name: "Code Snippets", href: "/code-snippets" },
-  { name: "Race", href: "/race" },
-  { name: "Leaderboard", href: "/leaderboard" },
-];
+const getNavigation = (isLoggedIn: boolean, isAdmin: boolean) => {
+  const baseNav = [
+    { name: "Home", href: "/" },
+    { name: "Typing Test", href: "/typing-test" },
+    { name: "Practice", href: "/practice" },
+    { name: "Race", href: "/race" },
+    { name: "Code Snippets", href: "/code-snippets" },
+    { name: "Leaderboard", href: "/leaderboard" },
+  ];
+
+  if (isLoggedIn) {
+    const userNav = [...baseNav, { name: "Dashboard", href: "/dashboard" }];
+    return isAdmin ? [...userNav, { name: "Admin", href: "/admin" }] : userNav;
+  }
+
+  return baseNav;
+};
 
 export function Navbar() {
   const { user, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    async function checkAdminStatus() {
+      if (!user) return;
+
+      try {
+        const { data } = await supabase
+          .from('admin_roles')
+          .select('role_name')
+          .eq('user_id', user.id)
+          .single();
+
+        setIsAdmin(data?.role_name === 'super_admin');
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    }
+
+    checkAdminStatus();
+  }, [user, supabase]);
+
+  const navigation = getNavigation(!!user, isAdmin);
 
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
+      router.push('/dashboard');
     } catch (error) {
       console.error("Error signing in with Google:", error);
     }
