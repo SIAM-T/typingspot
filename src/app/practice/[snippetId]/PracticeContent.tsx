@@ -2,7 +2,7 @@
 
 import { LessonTypingTest } from "@/components/typing-test/LessonTypingTest";
 import { CodeTypingTest } from "./CodeTypingTest";
-import type { Lesson } from "../page";
+import type { Lesson } from "@/lib/data/lessons";
 import type { CodeSnippet } from "@/lib/types/code-snippets";
 
 interface Props {

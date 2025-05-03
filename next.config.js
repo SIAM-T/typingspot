@@ -9,7 +9,10 @@ const nextConfig = {
   // Disable type checking during production builds
   experimental: {
     typedRoutes: false,
-  }
+  },
+  output: 'standalone',
+  poweredByHeader: false,
+  reactStrictMode: true,
 };
 
 module.exports = nextConfig;

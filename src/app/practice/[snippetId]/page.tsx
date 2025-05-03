@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { lessons, Lesson } from "../page";
+import { lessons, type Lesson } from "@/lib/data/lessons";
 import { supabase } from "@/lib/supabase/config";
 import { PracticeContent } from "./PracticeContent";
 
