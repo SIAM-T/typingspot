@@ -13,7 +13,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 
-type TestDuration = 15 | 30 | 60 | 300;
+interface TypingData {
+  key: string;
+  timestamp: number;
+  correct: boolean;
+}
 
 interface TestResults {
   wpm: number;
@@ -24,116 +28,203 @@ interface TestResults {
   correctChars: number;
   incorrectChars: number;
   totalKeystrokes: number;
-  replayData: KeystrokeData[];
+  replayData: TypingData[];
 }
 
-interface KeystrokeData {
-  key: string;
-  timestamp: number;
-  correct: boolean;
-}
+type TestDuration = 15 | 30 | 60 | 300;
 
 export function TypingTest() {
-  const [text, setText] = useState("");
   const [input, setInput] = useState("");
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [lastTickTime, setLastTickTime] = useState<number>(0);
-  const [testDuration, setTestDuration] = useState<TestDuration>(() => {
-    return UserPreferencesManager.getPreferences().lastTestDuration as TestDuration;
-  });
   const [isTestActive, setIsTestActive] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [text, setText] = useState("");
   const [results, setResults] = useState<TestResults | null>(null);
-  const [currentCharIndex, setCurrentCharIndex] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    return UserPreferencesManager.getPreferences().soundEnabled;
-  });
+  const [typingData, setTypingData] = useState<TypingData[]>([]);
+  const [testDuration, setTestDuration] = useState<TestDuration>(60);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [visibleTextStart, setVisibleTextStart] = useState(0);
-  const [typingData, setTypingData] = useState<Array<{ key: string; timestamp: number; correct: boolean }>>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
-  const lineHeight = 40; // Height of each line in pixels
-  const visibleLines = 4; // Changed to show 4 lines
-  const { user } = useAuth();
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [stats, setStats] = useState({
+    wpm: 0,
+    accuracy: 0,
+    correctChars: 0,
+    incorrectChars: 0
+  });
+  const { user } = useAuth();
 
-  // Initialize or reset the test
-  const initTest = useCallback(() => {
-    const newText = generateText(testDuration === 300 ? 200 : 100);
-    setText(newText);
-    setInput("");
+  // Save result to database
+  const saveResult = async (results: TestResults) => {
+    try {
+      await supabase.from("typing_results").insert({
+        user_id: user!.id,
+        wpm: results.wpm,
+        accuracy: results.accuracy,
+        duration: results.duration,
+        text_type: "practice",
+        correct_chars: results.correctChars,
+        incorrect_chars: results.incorrectChars,
+        total_keystrokes: results.totalKeystrokes,
+        time_elapsed: results.timeElapsed
+      });
+
+      // Check and update achievements
+      await checkAndUpdateAchievements(user!.id);
+    } catch (error) {
+      console.error("Error saving result:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save your test results.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Initialize preferences and text on client-side only
+  useEffect(() => {
+    const prefs = UserPreferencesManager.getPreferences();
+    setTestDuration(prefs.lastTestDuration as TestDuration);
+    setSoundEnabled(prefs.soundEnabled);
+    setText(generateText(testDuration === 300 ? 200 : 100));
     setTimeLeft(testDuration);
+  }, []);
+
+  // End test function
+  const endTest = useCallback(() => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
     setIsTestActive(false);
-    setIsPaused(false);
-    setResults(null);
-    setCurrentCharIndex(0);
-    setVisibleTextStart(0);
-    startTimeRef.current = 0;
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    inputRef.current?.focus();
-  }, [testDuration]);
-
-  // Function to update visible text portion
-  const updateVisibleText = useCallback(() => {
-    const text = textContainerRef.current?.textContent || '';
-    const lines = text.split('\n');
-    let currentLine = 0;
-    let charCount = 0;
     
-    // Find which line contains the current character
-    for (let i = 0; i < lines.length; i++) {
-      if (charCount + lines[i].length >= currentCharIndex) {
-        currentLine = i;
-        break;
-      }
-      charCount += lines[i].length + 1; // +1 for newline
+    const testResults: TestResults = {
+      wpm: stats.wpm,
+      rawWpm: Math.round((input.length / 5) / ((testDuration - timeLeft) / 60)),
+      accuracy: stats.accuracy,
+      correctChars: stats.correctChars,
+      incorrectChars: stats.incorrectChars,
+      totalKeystrokes: stats.correctChars + stats.incorrectChars,
+      duration: testDuration,
+      timeElapsed: testDuration - timeLeft,
+      replayData: typingData
+    };
+    
+    setResults(testResults);
+
+    toast({
+      title: "Test Complete!",
+      description: `WPM: ${testResults.wpm} | Accuracy: ${testResults.accuracy}%`,
+    });
+
+    // Save result if user is logged in
+    if (user) {
+      saveResult(testResults);
+    }
+  }, [stats, input, timeLeft, testDuration, typingData, user]);
+
+  // Update stats based on current input
+  const updateStats = useCallback(() => {
+    // Don't update stats if test hasn't started
+    if (!isTestActive || !startTimeRef.current) {
+      setStats({
+        wpm: 0,
+        accuracy: 0,
+        correctChars: 0,
+        incorrectChars: 0
+      });
+      return;
     }
 
-    // Update visible text start if needed
-    if (currentLine > 1) {
-      setVisibleTextStart(Math.max(0, currentLine - 1));
+    let correctChars = 0;
+    let incorrectChars = 0;
+
+    // Count correct and incorrect characters
+    for (let i = 0; i < input.length; i++) {
+      if (i < text.length) {
+        if (input[i] === text[i]) {
+          correctChars++;
+        } else {
+          incorrectChars++;
+        }
+      } else {
+        incorrectChars++;
+      }
     }
-  }, [currentCharIndex]);
+
+    // Calculate elapsed time in minutes (ensure minimum of 1 second to avoid division by zero)
+    const elapsedSeconds = Math.max((Date.now() - startTimeRef.current) / 1000, 1);
+    const elapsedMinutes = elapsedSeconds / 60;
+
+    // Calculate WPM and accuracy
+    const wpm = Math.round((correctChars / 5) / elapsedMinutes);
+    const accuracy = input.length > 0 ? Math.round((correctChars / input.length) * 100) : 0;
+
+    // Update stats immediately
+    setStats({
+      wpm,
+      accuracy,
+      correctChars,
+      incorrectChars
+    });
+  }, [input, text, isTestActive]);
 
   // Handle input changes
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     try {
       const value = e.target.value;
       
       // Start test on first input
-      if (!isTestActive && !isPaused && value.length === 1) {
+      if (!isTestActive && value.length === 1) {
         setIsTestActive(true);
         startTimeRef.current = Date.now();
-      }
+        setStats({
+          wpm: 0,
+          accuracy: 0,
+          correctChars: 0,
+          incorrectChars: 0
+        });
 
-      // Record typing data
-      if (value.length > input.length) {
-        const newChar = value[value.length - 1];
-        const isCorrect = newChar === text[value.length - 1];
-        setTypingData(prev => [...prev, {
-          key: newChar,
-          timestamp: Date.now() - startTimeRef.current,
-          correct: isCorrect
-        }]);
+        // Start timer
+        timerIntervalRef.current = setInterval(() => {
+          const elapsed = (Date.now() - startTimeRef.current) / 1000;
+          const remaining = Math.max(0, testDuration - elapsed);
+          setTimeLeft(remaining);
 
-        // Play sound based on correct/incorrect input
-        if (keyboardSounds && soundEnabled && !isPaused) {
-          if (isCorrect) {
-            keyboardSounds.playKeyPress();
-          } else {
-            keyboardSounds.playError();
+          if (remaining <= 0) {
+            endTest();
           }
-        }
+        }, 100);
       }
 
       setInput(value);
-      setCurrentCharIndex(value.length);
-      updateVisibleText();
+      
+      // Update stats immediately after input change
+      updateStats();
+
+      // Auto-scroll text
+      if (scrollRef.current && textContainerRef.current) {
+        const lineHeight = 40;
+        const currentLine = Math.floor(value.length / 50);
+        const scrollTop = currentLine * lineHeight;
+        scrollRef.current.scrollTop = Math.max(0, scrollTop - lineHeight);
+      }
+
+      // Play sound if enabled
+      if (value.length > input.length && keyboardSounds && soundEnabled) {
+        const newChar = value[value.length - 1];
+        const isCorrect = newChar === text[value.length - 1];
+        
+        if (isCorrect) {
+          keyboardSounds.playKeyPress();
+        } else {
+          keyboardSounds.playError();
+        }
+      }
 
       // Auto-end test if text is completed
       if (value === text) {
@@ -147,120 +238,43 @@ export function TypingTest() {
         variant: "destructive"
       });
     }
-  };
+  }, [isTestActive, input, text, soundEnabled, endTest, testDuration, updateStats, toast]);
 
-  // Calculate current WPM safely
-  const calculateCurrentWPM = () => {
-    try {
-      if (!input.length || !testDuration || timeLeft >= testDuration) return 0;
-      return Math.round((input.length / 5) / ((testDuration - timeLeft) / 60));
-    } catch (error) {
-      console.error("Error calculating WPM:", error);
-      return 0;
-    }
-  };
-
-  // Calculate current accuracy safely
-  const calculateCurrentAccuracy = () => {
-    try {
-      if (!input.length) return 100;
-      const correctChars = input.split('').filter((char, i) => char === text[i]).length;
-      return Math.round((correctChars / input.length) * 100);
-    } catch (error) {
-      console.error("Error calculating accuracy:", error);
-      return 0;
-    }
-  };
-
-  // Handle test completion
-  const endTest = useCallback(async () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+  // Initialize test
+  const initTest = useCallback(() => {
+    const newText = generateText(testDuration === 300 ? 200 : 100);
+    setText(newText);
+    setInput("");
+    setTimeLeft(testDuration);
     setIsTestActive(false);
-    setIsPaused(false);
-
-    const timeElapsed = testDuration - timeLeft;
-    const { wpm, accuracy, rawWpm, correctChars, incorrectChars, totalKeystrokes } = calculateWPM(input, text, timeElapsed);
+    setResults(null);
+    setTypingData([]);
+    startTimeRef.current = 0;
+    setStats({
+      wpm: 0,
+      accuracy: 0,
+      correctChars: 0,
+      incorrectChars: 0
+    });
     
-    const testResults = {
-      wpm,
-      accuracy,
-      duration: testDuration,
-      timeElapsed,
-      rawWpm,
-      correctChars,
-      incorrectChars,
-      totalKeystrokes,
-      replayData: typingData
-    };
-    setResults(testResults);
-
-    // Save results if user is authenticated
-    if (user) {
-      try {
-        await supabase.from("typing_tests").insert({
-          user_id: user.id,
-          wpm,
-          accuracy,
-          duration: timeElapsed,
-          character_count: input.length,
-          error_count: incorrectChars,
-          raw_wpm: rawWpm,
-          correct_chars: correctChars,
-          incorrect_chars: incorrectChars,
-          total_keystrokes: totalKeystrokes,
-          replay_data: typingData,
-          test_type: 'practice',
-          timestamp: new Date().toISOString()
-        });
-
-        // Check and update achievements
-        await checkAndUpdateAchievements(user.id);
-      } catch (error) {
-        console.error("Failed to save results:", error);
-        toast({
-          title: "Error",
-          description: "Failed to save your results. Please try again.",
-          variant: "destructive"
-        });
-      }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
-  }, [input, text, timeLeft, testDuration, user, toast, typingData]);
 
-  // Timer effect
-  useEffect(() => {
-    if (isTestActive && !isPaused && timeLeft > 0) {
-      const startTime = performance.now();
-      setLastTickTime(startTime);
-
-      const timer = setInterval(() => {
-        const currentTime = performance.now();
-        const elapsedTime = (currentTime - lastTickTime) / 1000;
-        
-        setTimeLeft((prev) => {
-          const newTime = prev - elapsedTime;
-          if (newTime <= 0) {
-            clearInterval(timer);
-            endTest();
-            return 0;
-          }
-          setLastTickTime(currentTime);
-          return newTime;
-        });
-      }, 100); // Update more frequently for smoother countdown
-
-      return () => clearInterval(timer);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
     }
-  }, [isTestActive, isPaused, timeLeft, lastTickTime, endTest]);
+
+    inputRef.current?.focus();
+  }, [testDuration]);
 
   // Initialize test on mount and when duration changes
   useEffect(() => {
     initTest();
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
       }
     };
   }, [testDuration, initTest]);
@@ -280,7 +294,7 @@ export function TypingTest() {
     const shortcuts = keyboardShortcuts;
 
     shortcuts.register('r', () => {
-      if (!isTestActive || isPaused) initTest();
+      if (!isTestActive) initTest();
     }, 'Restart test');
 
     shortcuts.register('m', () => {
@@ -305,7 +319,7 @@ export function TypingTest() {
       shortcuts.unregister('?');
       shortcuts.unregister('Escape');
     };
-  }, [initTest, isTestActive, isPaused, soundEnabled]);
+  }, [initTest, isTestActive]);
 
   // Focus input on mount and after each test
   useEffect(() => {
@@ -342,63 +356,20 @@ export function TypingTest() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isTestActive]);
 
-  // Force end test
-  const forceEndTest = () => {
-    if (isTestActive && !results) {
-      endTest();
-    }
-  };
-
-  // Replay test with same text
-  const replayTest = () => {
-    setInput("");
-    setTimeLeft(testDuration);
-    setIsTestActive(false);
-    setIsPaused(false);
-    setResults(null);
-    setCurrentCharIndex(0);
-    startTimeRef.current = 0;
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    inputRef.current?.focus();
-  };
-
-  // Generate new test
-  const newTest = () => {
-    const newText = generateText(testDuration === 300 ? 200 : 100);
-    setText(newText);
-    replayTest();
-  };
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between mb-8">
         <div className="flex flex-wrap gap-4">
-          <Button
-            variant={testDuration === 15 ? "default" : "outline"}
-            onClick={() => setTestDuration(15)}
-          >
-            15s
-          </Button>
-          <Button
-            variant={testDuration === 30 ? "default" : "outline"}
-            onClick={() => setTestDuration(30)}
-          >
-            30s
-          </Button>
-          <Button
-            variant={testDuration === 60 ? "default" : "outline"}
-            onClick={() => setTestDuration(60)}
-          >
-            60s
-          </Button>
-          <Button
-            variant={testDuration === 300 ? "default" : "outline"}
-            onClick={() => setTestDuration(300)}
-          >
-            5min
-          </Button>
+          {[15, 30, 60, 300].map((duration) => (
+            <Button
+              key={duration}
+              variant={testDuration === duration ? "default" : "outline"}
+              onClick={() => setTestDuration(duration as TestDuration)}
+              disabled={isTestActive}
+            >
+              {duration === 300 ? "5min" : `${duration}s`}
+            </Button>
+          ))}
         </div>
         <div className="text-3xl font-bold font-mono">
           {Math.ceil(timeLeft)}s
@@ -407,35 +378,39 @@ export function TypingTest() {
 
       <div className="relative h-[160px] overflow-hidden bg-card rounded-lg">
         <div
-          ref={textContainerRef}
-          className="absolute inset-0 font-mono text-2xl md:text-3xl whitespace-pre-wrap select-none p-8 typing-text-content"
-          style={{
-            transform: `translateY(-${Math.max(0, visibleTextStart * lineHeight)}px)`,
-            transition: 'transform 0.2s ease-out'
-          }}
-          aria-hidden="true"
+          ref={scrollRef}
+          className="absolute inset-0 overflow-auto scrollbar-hide"
         >
-          {text.split('').map((char, index) => {
-            const isTyped = index < input.length;
-            const isCorrect = input[index] === char;
-            const isCurrent = index === currentCharIndex;
+          <div
+            ref={textContainerRef}
+            className="font-mono text-2xl md:text-3xl whitespace-pre-wrap select-none p-8"
+          >
+            {text.split('').map((char, index) => {
+              const isTyped = index < input.length;
+              const isCorrect = input[index] === char;
+              const isCurrent = index === input.length; // Current character position
 
-            return (
-              <span
-                key={index}
-                className={cn(
-                  isTyped
-                    ? isCorrect
-                      ? "text-green-500 dark:text-green-400"
-                      : "text-red-500 dark:text-red-400"
-                    : "text-foreground",
-                  isCurrent ? "bg-primary/20 rounded px-1" : ""
-                )}
-              >
-                {char}
-              </span>
-            );
-          })}
+              return (
+                <span
+                  key={index}
+                  className={cn(
+                    isTyped
+                      ? isCorrect
+                        ? "text-green-500 dark:text-green-400"
+                        : "text-red-500 dark:text-red-400"
+                      : "text-foreground",
+                    isCurrent && isTestActive ? "bg-primary/20 rounded-sm px-1 animate-pulse" : "" // Highlight current character
+                  )}
+                >
+                  {char}
+                </span>
+              );
+            })}
+            {/* Add cursor at the end if we've typed all characters */}
+            {input.length >= text.length && isTestActive && (
+              <span className="bg-primary/20 rounded-sm px-1 animate-pulse">&nbsp;</span>
+            )}
+          </div>
         </div>
 
         <textarea
@@ -448,139 +423,49 @@ export function TypingTest() {
           autoCorrect="off"
           spellCheck={false}
           aria-label="Type here to start the test"
+          disabled={!isTestActive && input.length > 0}
         />
       </div>
 
+      {/* Stats display - show both during test and after completion */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {results ? (
-          <>
-            <div className="p-4 rounded-lg bg-card">
-              <div className="text-3xl font-bold text-primary">{Math.round(results.wpm)}</div>
-              <div className="text-sm text-muted-foreground">WPM</div>
-            </div>
-            <div className="p-4 rounded-lg bg-card">
-              <div className="text-3xl font-bold text-primary">{Math.round(results.rawWpm)}</div>
-              <div className="text-sm text-muted-foreground">Raw WPM</div>
-            </div>
-            <div className="p-4 rounded-lg bg-card">
-              <div className="text-3xl font-bold text-primary">{Math.round(results.accuracy)}%</div>
-              <div className="text-sm text-muted-foreground">Accuracy</div>
-            </div>
-            <div className="p-4 rounded-lg bg-card">
-              <div className="text-3xl font-bold text-primary">{results.timeElapsed}s</div>
-              <div className="text-sm text-muted-foreground">Time</div>
-            </div>
-          </>
-        ) : (
-          isTestActive && (
-            <>
-              <div className="p-4 rounded-lg bg-card">
-                <div className="text-3xl font-bold text-primary">
-                  {calculateCurrentWPM()}
-                </div>
-                <div className="text-sm text-muted-foreground">Current WPM</div>
-              </div>
-              <div className="p-4 rounded-lg bg-card">
-                <div className="text-3xl font-bold text-primary">
-                  {Math.round((input.length || 0) / ((testDuration - timeLeft) / 60))}
-                </div>
-                <div className="text-sm text-muted-foreground">Current CPM</div>
-              </div>
-              <div className="p-4 rounded-lg bg-card">
-                <div className="text-3xl font-bold text-primary">
-                  {calculateCurrentAccuracy()}%
-                </div>
-                <div className="text-sm text-muted-foreground">Current Accuracy</div>
-              </div>
-              <div className="p-4 rounded-lg bg-card">
-                <div className="text-3xl font-bold text-primary">{Math.round(testDuration - timeLeft)}s</div>
-                <div className="text-sm text-muted-foreground">Time Elapsed</div>
-              </div>
-            </>
-          )
-        )}
+        <div className="p-4 rounded-lg bg-card">
+          <div className="text-3xl font-bold text-primary">
+            {stats.wpm}
+          </div>
+          <div className="text-sm text-muted-foreground">WPM</div>
+        </div>
+        <div className="p-4 rounded-lg bg-card">
+          <div className="text-3xl font-bold text-primary">
+            {stats.accuracy}%
+          </div>
+          <div className="text-sm text-muted-foreground">Accuracy</div>
+        </div>
+        <div className="p-4 rounded-lg bg-card">
+          <div className="text-3xl font-bold text-primary">
+            {stats.correctChars}
+          </div>
+          <div className="text-sm text-muted-foreground">Correct Characters</div>
+        </div>
+        <div className="p-4 rounded-lg bg-card">
+          <div className="text-3xl font-bold text-primary">
+            {stats.incorrectChars}
+          </div>
+          <div className="text-sm text-muted-foreground">Incorrect Characters</div>
+        </div>
       </div>
 
       <div className="flex justify-center gap-4">
-        {isTestActive && !results && (
-          <Button 
-            variant="destructive"
-            onClick={forceEndTest}
-          >
-            End Test
-          </Button>
-        )}
-        <Button onClick={newTest}>
-          New Test (R)
+        <Button onClick={initTest}>
+          New Test
         </Button>
         <Button
           variant="outline"
           onClick={() => setSoundEnabled(!soundEnabled)}
         >
-          {soundEnabled ? "Sound On (M)" : "Sound Off (M)"}
+          {soundEnabled ? "Sound On" : "Sound Off"}
         </Button>
       </div>
-
-      {results && (
-        <motion.div
-          className="space-y-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-lg bg-card">
-              <div className="text-sm text-muted-foreground">Correct Characters</div>
-              <div className="text-2xl font-bold text-primary">{results.correctChars}</div>
-            </div>
-            <div className="p-4 rounded-lg bg-card">
-              <div className="text-sm text-muted-foreground">Incorrect Characters</div>
-              <div className="text-2xl font-bold text-primary">{results.incorrectChars}</div>
-            </div>
-            <div className="p-4 rounded-lg bg-card">
-              <div className="text-sm text-muted-foreground">Total Keystrokes</div>
-              <div className="text-2xl font-bold text-primary">{results.totalKeystrokes}</div>
-            </div>
-            <div className="p-4 rounded-lg bg-card">
-              <div className="text-sm text-muted-foreground">Characters per Second</div>
-              <div className="text-2xl font-bold text-primary">
-                {Math.round((results.totalKeystrokes / results.timeElapsed) * 10) / 10}
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-lg bg-card">
-            <h3 className="text-lg font-semibold mb-4">Replay</h3>
-            <div className="h-[100px] overflow-hidden relative">
-              <div 
-                className="font-mono text-sm whitespace-pre-wrap"
-                style={{
-                  animation: `typewriter ${results.timeElapsed}s linear forwards`,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-all'
-                }}
-              >
-                {text}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-4">
-            <Button
-              onClick={replayTest}
-              variant="outline"
-              size="lg"
-            >
-              Retry Same Text
-            </Button>
-            <Button
-              onClick={newTest}
-              size="lg"
-            >
-              Try New Text
-            </Button>
-          </div>
-        </motion.div>
-      )}
 
       {showShortcuts && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">

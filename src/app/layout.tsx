@@ -12,38 +12,34 @@ import Script from "next/script";
 const inter = Inter({ subsets: ["latin"] });
 
 const title = 'TypingSpot - Free Online Typing Test and Practice';
-const description = 'Improve your typing speed and accuracy with TypingSpot. Take typing tests, track your progress, compete with others, and learn touch typing with our interactive lessons. Features include WPM tracking, accuracy measurement, typing games, and multiplayer races.';
+const description = 'Improve your typing speed with TypingSpot\'s free online typing tests, games, and practice exercises. Track your WPM, accuracy, and progress over time.';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://typingspot.online'),
   title: {
-    default: title,
-    template: '%s | TypingSpot - Free Typing Test'
+    template: '%s | TypingSpot - Improve Your Typing Speed',
+    default: 'TypingSpot - Free Online Typing Test and Practice'
   },
   description,
   keywords: [
     'typing test',
-    'typing speed test',
+    'typing speed',
     'wpm calculator',
     'typing practice',
-    'touch typing',
     'typing games',
+    'touch typing',
     'typing tutor',
     'online typing test',
-    'keyboard practice',
+    'free typing test',
+    'typing speed test',
     'typing skills',
     'improve typing speed',
     'typing speed calculator',
-    'free typing test',
-    'typing test online',
-    'typing speed practice',
-    'typing test game',
-    'learn touch typing',
     'typing test certificate',
     'professional typing test',
     'typing speed checker'
   ],
-  authors: [{ name: 'TypingSpot Team' }],
+  authors: [{ name: 'TypingSpot' }],
   creator: 'TypingSpot',
   publisher: 'TypingSpot',
   robots: {
@@ -62,11 +58,11 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://typingspot.online',
     siteName: 'TypingSpot',
-    title,
-    description,
+    title: 'TypingSpot - Free Online Typing Test and Practice',
+    description: 'Improve your typing speed with TypingSpot\'s free online typing tests, games, and practice exercises. Track your WPM, accuracy, and progress over time.',
     images: [
       {
-        url: 'https://typingspot.online/og-image.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'TypingSpot - Free Online Typing Test and Practice'
@@ -75,9 +71,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title,
-    description,
-    images: ['https://typingspot.online/og-image.png'],
+    title: 'TypingSpot - Free Online Typing Test and Practice',
+    description: 'Improve your typing speed with TypingSpot\'s free online typing tests, games, and practice exercises. Track your WPM, accuracy, and progress over time.',
+    images: ['/twitter-image.png'],
     creator: '@typingspot',
     site: '@typingspot'
   },
@@ -120,8 +116,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
