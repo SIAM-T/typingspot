@@ -59,11 +59,11 @@ export function UserMenu() {
           </div>
           <nav className="mt-2">
             <Link
-              href="/profile"
+              href="/dashboard"
               className="block px-4 py-2 text-sm hover:bg-secondary transition-colors"
               onClick={() => setIsOpen(false)}
             >
-              Profile
+              Dashboard
             </Link>
             <Link
               href="/achievements"
