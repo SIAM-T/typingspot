@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { generateText, calculateWPM } from "@/lib/utils/text-generator";
 import { keyboardSounds } from "@/lib/utils/keyboard-sounds";
-import { UserPreferencesManager } from "@/lib/utils/user-preferences";
 import { keyboardShortcuts } from "@/lib/utils/keyboard-shortcuts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase/config";
@@ -88,18 +87,18 @@ export function TypingTest({ initialText }: Props) {
     }
   };
 
-  // Initialize preferences and text on client-side only
+  // Initialize on mount: Set default duration/sound
   useEffect(() => {
-    const prefs = UserPreferencesManager.getPreferences();
-    setTestDuration(prefs.lastTestDuration as TestDuration);
-    setSoundEnabled(prefs.soundEnabled);
-    if (initialText) {
-      setText(initialText);
-    } else {
-      setText(generateText(testDuration === 300 ? 200 : 100));
-    }
-    setTimeLeft(testDuration);
-  }, [initialText]);
+    const initialDuration: TestDuration = 60; // Default duration
+    const initialSoundEnabled = false; // Default sound setting
+
+    console.log(`Setting default prefs: duration=${initialDuration}, sound=${initialSoundEnabled}`); // Updated log
+
+    // Set state based on defaults. This will trigger the other useEffect to call initTest
+    setSoundEnabled(initialSoundEnabled);
+    setTestDuration(initialDuration); 
+
+  }, []); // Run only once on mount
 
   // End test function
   const endTest = useCallback(() => {
@@ -109,20 +108,53 @@ export function TypingTest({ initialText }: Props) {
     }
 
     setIsTestActive(false);
+
+    // --- Calculate final results directly --- START
+    const finalInput = inputRef.current?.value || input; // Get latest input value
+    const timeElapsedSeconds = Math.max(testDuration - timeLeft, (Date.now() - startTimeRef.current) / 1000, 1);
+    const timeElapsedMinutes = timeElapsedSeconds / 60;
+
+    let finalCorrectChars = 0;
+    let finalIncorrectChars = 0;
+    for (let i = 0; i < finalInput.length; i++) {
+      if (i < text.length) {
+        if (finalInput[i] === text[i]) {
+          finalCorrectChars++;
+        } else {
+          finalIncorrectChars++;
+        }
+      } else {
+        finalIncorrectChars++;
+      }
+    }
+
+    const finalWpm = timeElapsedMinutes > 0 ? Math.round((finalCorrectChars / 5) / timeElapsedMinutes) : 0;
+    const finalAccuracy = finalInput.length > 0 ? Math.round((finalCorrectChars / finalInput.length) * 100) : 0;
+    const finalRawWpm = timeElapsedMinutes > 0 ? Math.round((finalInput.length / 5) / timeElapsedMinutes) : 0;
+    const finalTotalKeystrokes = finalCorrectChars + finalIncorrectChars;
+    // --- Calculate final results directly --- END
     
     const testResults: TestResults = {
-      wpm: stats.wpm,
-      rawWpm: Math.round((input.length / 5) / ((testDuration - timeLeft) / 60)),
-      accuracy: stats.accuracy,
-      correctChars: stats.correctChars,
-      incorrectChars: stats.incorrectChars,
-      totalKeystrokes: stats.correctChars + stats.incorrectChars,
+      wpm: finalWpm, // Use calculated final WPM
+      rawWpm: finalRawWpm, // Use calculated final raw WPM
+      accuracy: finalAccuracy, // Use calculated final Accuracy
+      correctChars: finalCorrectChars, // Use calculated final correct chars
+      incorrectChars: finalIncorrectChars, // Use calculated final incorrect chars
+      totalKeystrokes: finalTotalKeystrokes, // Use calculated final total keystrokes
       duration: testDuration,
-      timeElapsed: testDuration - timeLeft,
+      timeElapsed: timeElapsedSeconds, // Use calculated elapsed seconds
       replayData: typingData
     };
     
     setResults(testResults);
+
+    // Update the stats state one last time for the UI display
+    setStats({
+      wpm: finalWpm,
+      accuracy: finalAccuracy,
+      correctChars: finalCorrectChars,
+      incorrectChars: finalIncorrectChars,
+    });
 
     toast({
       title: "Test Complete!",
@@ -248,12 +280,14 @@ export function TypingTest({ initialText }: Props) {
     }
   }, [isTestActive, input, text, soundEnabled, endTest, testDuration, updateStats, toast]);
 
-  // Initialize test
+  // Refactored initTest - Now uses the current testDuration state internally
   const initTest = useCallback(() => {
-    const newText = generateText(testDuration === 300 ? 200 : 100);
+    const duration = testDuration; // Use the state variable directly
+    console.log(`Initializing test with duration: ${duration}`); // Add log
+    const newText = generateText(duration === 300 ? 200 : 100);
     setText(newText);
     setInput("");
-    setTimeLeft(testDuration);
+    setTimeLeft(duration);
     setIsTestActive(false);
     setResults(null);
     setTypingData([]);
@@ -277,23 +311,19 @@ export function TypingTest({ initialText }: Props) {
     inputRef.current?.focus();
   }, [testDuration]);
 
-  // Initialize test on mount and when duration changes
+  // Initialize test when duration changes
   useEffect(() => {
-    initTest();
+    // Check if testDuration has actually been set (not the initial default)
+    if (testDuration > 0) {
+      console.log(`testDuration changed to: ${testDuration}, running initTest.`); // Add log
+      initTest();
+    }
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
     };
   }, [testDuration, initTest]);
-
-  // Update preferences when settings change
-  useEffect(() => {
-    UserPreferencesManager.updatePreferences({
-      soundEnabled,
-      lastTestDuration: testDuration,
-    });
-  }, [soundEnabled, testDuration]);
 
   // Register keyboard shortcuts
   useEffect(() => {
