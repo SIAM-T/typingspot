@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
 
 const getNavigation = (isLoggedIn: boolean, isAdmin: boolean) => {
   const baseNav = [
@@ -69,9 +71,9 @@ export function Navbar() {
       <div className="container flex h-14 max-w-screen-2xl items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="text-xl font-bold">TypingSpot</span>
+            <span className="font-bold">TypingSpot</span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
+          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             {navigation.map((item) => (
               <Link
                 key={item.href}
@@ -83,25 +85,66 @@ export function Navbar() {
             ))}
           </nav>
         </div>
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <nav className="flex items-center space-x-2">
-            <ThemeToggle />
+        <div className="flex flex-1 items-center justify-end space-x-2 md:space-x-4">
+          <ThemeToggle />
+          <div className="hidden sm:flex items-center space-x-2">
             {user ? (
               <UserMenu />
             ) : (
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" onClick={() => router.push('/login')}>
+              <>
+                <Button variant="outline" size="sm" onClick={() => router.push('/login')}>
                   Login
                 </Button>
-                <Button variant="outline" onClick={() => router.push('/signup')}>
+                <Button variant="outline" size="sm" onClick={() => router.push('/signup')}>
                   Sign Up
                 </Button>
-                <Button onClick={handleGoogleSignIn}>
+                <Button size="sm" onClick={handleGoogleSignIn}>
                   Sign in with Google
                 </Button>
-              </div>
+              </>
             )}
-          </nav>
+          </div>
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle Menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <div className="flex flex-col space-y-4 pt-6">
+                  {navigation.map((item) => (
+                    <SheetClose asChild key={item.href}>
+                      <Link
+                        href={item.href}
+                        className="text-lg font-medium transition-colors hover:text-foreground/80 text-foreground/60"
+                      >
+                        {item.name}
+                      </Link>
+                    </SheetClose>
+                  ))}
+                  <div className="border-t border-border pt-4">
+                    {user ? (
+                      <UserMenu />
+                    ) : (
+                      <div className="flex flex-col space-y-2">
+                        <SheetClose asChild>
+                          <Button variant="outline" onClick={() => router.push('/login')}>Login</Button>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Button variant="outline" onClick={() => router.push('/signup')}>Sign Up</Button>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Button onClick={handleGoogleSignIn}>Sign in with Google</Button>
+                        </SheetClose>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>

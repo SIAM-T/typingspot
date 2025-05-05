@@ -60,112 +60,79 @@ export function TypingTest({ initialText }: Props) {
   });
   const { user } = useAuth();
 
-  // Save result to database
-  const saveResult = async (results: TestResults) => {
+  // Save result to database (defined first)
+  const saveResult = useCallback(async (results: TestResults) => {
+    if (!user) return;
+    const xpEarned = Math.floor(results.correctChars / 5);
     try {
-      await supabase.from("typing_results").insert({
-        user_id: user!.id,
-        wpm: results.wpm,
-        accuracy: results.accuracy,
-        duration: results.duration,
-        text_type: "practice",
-        correct_chars: results.correctChars,
-        incorrect_chars: results.incorrectChars,
-        total_keystrokes: results.totalKeystrokes,
+      const { error: insertError } = await supabase.from("typing_results").insert({
+        user_id: user.id, wpm: results.wpm, accuracy: results.accuracy,
+        duration: results.duration, text_type: "practice", correct_chars: results.correctChars,
+        incorrect_chars: results.incorrectChars, total_keystrokes: results.totalKeystrokes,
         time_elapsed: results.timeElapsed
       });
-
-      // Check and update achievements
-      await checkAndUpdateAchievements(user!.id);
+      if (insertError) throw insertError;
+      if (xpEarned > 0) {
+        const { error: rpcError } = await supabase.rpc('increment_user_xp', {
+          user_id_param: user.id, xp_increment: xpEarned
+        });
+        if (rpcError) console.error("Error incrementing XP:", rpcError);
+      }
+      await checkAndUpdateAchievements(user.id);
+      console.log(`Result saved. XP Earned: ${xpEarned}`);
     } catch (error) {
-      console.error("Error saving result:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save your test results.",
-        variant: "destructive"
-      });
+      console.error("Error saving result or updating XP:", error);
+      toast({ title: "Error", description: "Failed to save test results.", variant: "destructive" });
     }
-  };
+  }, [user, checkAndUpdateAchievements, toast, supabase]);
 
-  // Initialize on mount: Set default duration/sound
-  useEffect(() => {
-    const initialDuration: TestDuration = 60; // Default duration
-    const initialSoundEnabled = false; // Default sound setting
-
-    console.log(`Setting default prefs: duration=${initialDuration}, sound=${initialSoundEnabled}`); // Updated log
-
-    // Set state based on defaults. This will trigger the other useEffect to call initTest
-    setSoundEnabled(initialSoundEnabled);
-    setTestDuration(initialDuration); 
-
-  }, []); // Run only once on mount
-
-  // End test function
-  const endTest = useCallback(() => {
+  // End test function (defined after saveResult, before handleInput)
+   const endTest = useCallback(() => {
+    console.log("--- endTest called ---"); // Log start of function
     if (timerIntervalRef.current) {
+      console.log("Clearing timer interval..."); // Log timer clear
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
-
+    console.log("Setting isTestActive to false..."); // Log state change
     setIsTestActive(false);
 
-    // --- Calculate final results directly --- START
-    const finalInput = inputRef.current?.value || input; // Get latest input value
+    const finalInput = inputRef.current?.value || input;
     const timeElapsedSeconds = Math.max(testDuration - timeLeft, (Date.now() - startTimeRef.current) / 1000, 1);
     const timeElapsedMinutes = timeElapsedSeconds / 60;
-
     let finalCorrectChars = 0;
     let finalIncorrectChars = 0;
     for (let i = 0; i < finalInput.length; i++) {
       if (i < text.length) {
-        if (finalInput[i] === text[i]) {
-          finalCorrectChars++;
-        } else {
-          finalIncorrectChars++;
-        }
+        if (finalInput[i] === text[i]) finalCorrectChars++;
+        else finalIncorrectChars++;
       } else {
         finalIncorrectChars++;
       }
     }
-
     const finalWpm = timeElapsedMinutes > 0 ? Math.round((finalCorrectChars / 5) / timeElapsedMinutes) : 0;
     const finalAccuracy = finalInput.length > 0 ? Math.round((finalCorrectChars / finalInput.length) * 100) : 0;
     const finalRawWpm = timeElapsedMinutes > 0 ? Math.round((finalInput.length / 5) / timeElapsedMinutes) : 0;
     const finalTotalKeystrokes = finalCorrectChars + finalIncorrectChars;
-    // --- Calculate final results directly --- END
-    
+
     const testResults: TestResults = {
-      wpm: finalWpm, // Use calculated final WPM
-      rawWpm: finalRawWpm, // Use calculated final raw WPM
-      accuracy: finalAccuracy, // Use calculated final Accuracy
-      correctChars: finalCorrectChars, // Use calculated final correct chars
-      incorrectChars: finalIncorrectChars, // Use calculated final incorrect chars
-      totalKeystrokes: finalTotalKeystrokes, // Use calculated final total keystrokes
-      duration: testDuration,
-      timeElapsed: timeElapsedSeconds, // Use calculated elapsed seconds
-      replayData: typingData
+      wpm: finalWpm, rawWpm: finalRawWpm, accuracy: finalAccuracy,
+      correctChars: finalCorrectChars, incorrectChars: finalIncorrectChars,
+      totalKeystrokes: finalTotalKeystrokes, duration: testDuration,
+      timeElapsed: timeElapsedSeconds, replayData: typingData
     };
-    
     setResults(testResults);
 
-    // Update the stats state one last time for the UI display
     setStats({
-      wpm: finalWpm,
-      accuracy: finalAccuracy,
-      correctChars: finalCorrectChars,
-      incorrectChars: finalIncorrectChars,
+      wpm: finalWpm, accuracy: finalAccuracy,
+      correctChars: finalCorrectChars, incorrectChars: finalIncorrectChars,
     });
 
-    toast({
-      title: "Test Complete!",
-      description: `WPM: ${testResults.wpm} | Accuracy: ${testResults.accuracy}%`,
-    });
+    toast({ title: "Test Complete!", description: `WPM: ${testResults.wpm} | Accuracy: ${testResults.accuracy}%` });
 
-    // Save result if user is logged in
-    if (user) {
-      saveResult(testResults);
-    }
-  }, [stats, input, timeLeft, testDuration, typingData, user]);
+    if (user) saveResult(testResults);
+    // Dependencies needed for endTest logic
+  }, [input, timeLeft, testDuration, typingData, user, text, toast, saveResult]); 
 
   // Update stats based on current input
   const updateStats = useCallback(() => {
@@ -236,6 +203,7 @@ export function TypingTest({ initialText }: Props) {
           setTimeLeft(remaining);
 
           if (remaining <= 0) {
+            console.log("Timer ended, calling endTest()."); // Add log
             endTest();
           }
         }, 100);
@@ -267,7 +235,8 @@ export function TypingTest({ initialText }: Props) {
       }
 
       // Auto-end test if text is completed
-      if (value === text) {
+      if (value.length >= text.length && value === text) {
+        console.log("Input matches text, calling endTest()."); // Add log
         endTest();
       }
     } catch (error) {
@@ -283,8 +252,11 @@ export function TypingTest({ initialText }: Props) {
   // Refactored initTest - Now uses the current testDuration state internally
   const initTest = useCallback(() => {
     const duration = testDuration; // Use the state variable directly
-    console.log(`Initializing test with duration: ${duration}`); // Add log
-    const newText = generateText(duration === 300 ? 200 : 100);
+    console.log(`Initializing test with duration: ${duration}, hasInitialText: ${!!initialText}`); // Add log
+    
+    // Use initialText if provided, otherwise generate new text
+    const newText = initialText ? initialText : generateText(duration === 300 ? 200 : 100);
+    
     setText(newText);
     setInput("");
     setTimeLeft(duration);
@@ -309,7 +281,7 @@ export function TypingTest({ initialText }: Props) {
     }
 
     inputRef.current?.focus();
-  }, [testDuration]);
+  }, [testDuration, initialText]);
 
   // Initialize test when duration changes
   useEffect(() => {
@@ -394,24 +366,46 @@ export function TypingTest({ initialText }: Props) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isTestActive]);
 
+  // Calculate which durations are suitable for the initial text length
+  const getAvailableDurations = useCallback(() => {
+    if (!initialText) {
+      return [15, 30, 60, 300]; // All durations available if no specific text
+    }
+    const len = initialText.length;
+    const available: TestDuration[] = [15]; // 15s always available?
+    if (len >= 94) available.push(30);   // ~75% of 125 chars
+    if (len >= 188) available.push(60);  // ~75% of 250 chars
+    if (len >= 938) available.push(300); // ~75% of 1250 chars
+    return available;
+  }, [initialText]);
+
+  const availableDurations = getAvailableDurations();
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between mb-8">
         <div className="flex flex-wrap gap-4">
-          {[15, 30, 60, 300].map((duration) => (
-            <Button
-              key={duration}
-              variant={testDuration === duration ? "default" : "outline"}
-              onClick={() => setTestDuration(duration as TestDuration)}
-              disabled={isTestActive}
-            >
-              {duration === 300 ? "5min" : `${duration}s`}
-            </Button>
-          ))}
+          {[15, 30, 60, 300].map((duration) => {
+            const isAvailable = availableDurations.includes(duration as TestDuration);
+            return (
+              <Button
+                key={duration}
+                variant={testDuration === duration ? "default" : "outline"}
+                onClick={() => setTestDuration(duration as TestDuration)}
+                disabled={isTestActive || !isAvailable} // Disable if test active OR duration too long
+                title={!isAvailable ? "Text too short for this duration" : undefined}
+              >
+                {duration === 300 ? "5min" : `${duration}s`}
+              </Button>
+            );
+          })}
         </div>
-        <div className="text-3xl font-bold font-mono">
-          {Math.ceil(timeLeft)}s
-        </div>
+        {/* Only show timer when test is active */}
+        {isTestActive && (
+          <div className="text-3xl font-bold font-mono animate-pulse">
+            {Math.ceil(timeLeft)}s
+          </div>
+        )}
       </div>
 
       <div className="relative h-[160px] overflow-hidden bg-card rounded-lg">
@@ -461,7 +455,7 @@ export function TypingTest({ initialText }: Props) {
           autoCorrect="off"
           spellCheck={false}
           aria-label="Type here to start the test"
-          disabled={!isTestActive && input.length > 0}
+          disabled={!isTestActive && results !== null} // Disable when inactive AND results are set
         />
       </div>
 

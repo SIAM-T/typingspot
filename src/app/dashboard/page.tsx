@@ -98,43 +98,41 @@ export default function DashboardPage() {
 
       try {
         // --- Fetch Data (Combine promises for efficiency) ---
-        const [statsPromise, profilePromise, recentTestsPromise, rankPromise, streakPromise] = await Promise.allSettled([
+        const [statsPromise, profilePromise, recentTestsPromise] = await Promise.allSettled([
           // 1. User Stats (Example: from a view or function)
-          supabase.from('user_typing_stats_view') // ASSUMPTION: View exists
+          supabase.from('user_typing_stats_view') // VERIFY THIS VIEW NAME IN SUPABASE
             .select('average_wpm, average_accuracy, total_tests, best_wpm, best_accuracy, best_streak')
             .eq('user_id', user.id)
             .maybeSingle(),
           // 2. User Profile (XP, etc.)
-          supabase.from('user_profiles') // ASSUMPTION: Table exists
+          supabase.from('user_profiles') // VERIFY THIS TABLE NAME IN SUPABASE
             .select('xp') // Fetch only needed fields
             .eq('user_id', user.id)
             .maybeSingle(),
           // 3. Recent Tests
-          supabase.from('typing_results') // Use correct table name
+          supabase.from('typing_results') // VERIFY THIS TABLE NAME IN SUPABASE
             .select('id, wpm, accuracy, completed_at')
             .eq('user_id', user.id)
             .order('completed_at', { ascending: false })
             .limit(100), // Fetch more for chart + table
-          // 4. Rank (Placeholder - Needs backend logic)
-          Promise.resolve({ data: { rank: 1234, percentile: 85 }, error: null }), // Replace with actual fetch
-          // 5. Streak (Placeholder - Needs backend logic - *Ensure actual fetch returns camelCase or map it*)
-          Promise.resolve({ data: { currentStreak: 5, longestStreak: 15 }, error: null }) // Changed to camelCase
+          // --- REMOVED PLACEHOLDER FETCHES FOR RANK/STREAK ---
+          // // 4. Rank (Placeholder - Needs backend logic)
+          // Promise.resolve({ data: { rank: 1234, percentile: 85 }, error: null }), 
+          // // 5. Streak (Placeholder - Needs backend logic)
+          // Promise.resolve({ data: { currentStreak: 5, longestStreak: 15 }, error: null })
         ]);
 
         // --- Process Results ---
         // Define fetched data from Supabase (snake_case expected)
-        const fetchedSupabaseStats = (statsPromise.status === 'fulfilled' && statsPromise.value.data) ? statsPromise.value.data : null;
-        const fetchedSupabaseProfile = (profilePromise.status === 'fulfilled' && profilePromise.value.data) ? profilePromise.value.data : null;
+        const fetchedSupabaseStats = (statsPromise.status === 'fulfilled' && statsPromise.value.data) ? statsPromise.value.data : null; // Initialize as null
+        const fetchedSupabaseProfile = (profilePromise.status === 'fulfilled' && profilePromise.value.data) ? profilePromise.value.data : null; // Initialize as null
         const fetchedRecentTests: RecentTest[] = recentTestsPromise.status === 'fulfilled' && recentTestsPromise.value.data ? recentTestsPromise.value.data : [];
-        // Assuming placeholders return camelCase or handle mapping if needed
-        const fetchedRank: Partial<UserRank> = (rankPromise.status === 'fulfilled' && rankPromise.value.data) ? rankPromise.value.data : {}; 
-        const fetchedStreak: Partial<DailyStreak> = (streakPromise.status === 'fulfilled' && streakPromise.value.data) ? streakPromise.value.data : {}; 
-        
+        // Removed rank/streak processing based on placeholders
+
         // Log errors if promises were rejected
         if (statsPromise.status === 'rejected') console.error("Stats fetch error:", statsPromise.reason);
         if (profilePromise.status === 'rejected') console.error("Profile fetch error:", profilePromise.reason);
         if (recentTestsPromise.status === 'rejected') console.error("Tests fetch error:", recentTestsPromise.reason);
-        // Handle errors for rank/streak if they become real fetches
 
         // Map Supabase data to our camelCase interfaces, checking for null fetches
         const mappedStats: UserStats = {
@@ -156,12 +154,12 @@ export default function DashboardPage() {
             level: currentLevel,
           },
           rank: {
-            rank: fetchedRank.rank ?? null, 
-            percentile: fetchedRank.percentile ?? null,
+            rank: null, 
+            percentile: null,
           },
           streak: {
-            currentStreak: fetchedStreak.currentStreak ?? 0,
-            longestStreak: fetchedStreak.longestStreak ?? mappedStats.bestStreak ?? 0,
+            currentStreak: null, // Set to null
+            longestStreak: mappedStats.bestStreak ?? 0, // Keep fallback to best_streak from stats view if available
           },
           recentTests: fetchedRecentTests,
         });
@@ -283,9 +281,9 @@ export default function DashboardPage() {
                  <CardDescription>Your position worldwide.</CardDescription>
               </CardHeader>
               <CardContent>
-                 <p className="text-4xl font-bold">#{dashboardData.rank.rank ?? 'N/A'}</p>
+                 <p className="text-4xl font-bold">N/A</p> {/* Changed Rank to N/A */}
                  <p className="text-sm text-muted-foreground">
-                    {dashboardData.rank.percentile ? `Top ${100 - dashboardData.rank.percentile}%` : 'Ranking unavailable'}
+                    Ranking unavailable
                  </p>
               </CardContent>
             </Card>
@@ -321,8 +319,8 @@ export default function DashboardPage() {
                  <CardDescription>Keep practicing daily!</CardDescription>
               </CardHeader>
               <CardContent className="text-center">
-                 <p className="text-6xl font-bold text-amber-500">{dashboardData.streak.currentStreak ?? 0}</p>
-                 <p className="text-sm text-muted-foreground">Day Streak</p>
+                 <p className="text-6xl font-bold text-muted-foreground">N/A</p> {/* Changed Streak to N/A */}
+                 <p className="text-sm text-muted-foreground">Streak unavailable</p>
               </CardContent>
           </Card>
           
@@ -356,30 +354,32 @@ export default function DashboardPage() {
              <CardDescription>Your last {dashboardData.recentTests.slice(0, 10).length} tests.</CardDescription>
          </CardHeader>
          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">WPM</TableHead>
-                  <TableHead className="text-right">Accuracy</TableHead>
-                   {/* Add more columns if needed, e.g., Duration, Mode */}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dashboardData.recentTests.slice(0, 10).map((test) => ( // Limit rows displayed
-                  <TableRow key={test.id}>
-                    <TableCell>{new Date(test.completed_at).toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{test.wpm}</TableCell>
-                    <TableCell className="text-right">{test.accuracy.toFixed(1)}%</TableCell>
+           <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">WPM</TableHead>
+                    <TableHead className="text-right">Accuracy</TableHead>
+                     {/* Add more columns if needed, e.g., Duration, Mode */}
                   </TableRow>
-                ))}
-                 {dashboardData.recentTests.length === 0 && (
-                    <TableRow>
-                       <TableCell colSpan={3} className="text-center text-muted-foreground">No tests recorded yet.</TableCell>
+                </TableHeader>
+                <TableBody>
+                  {dashboardData.recentTests.slice(0, 10).map((test) => ( // Limit rows displayed
+                    <TableRow key={test.id}>
+                      <TableCell>{new Date(test.completed_at).toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{test.wpm}</TableCell>
+                      <TableCell className="text-right">{test.accuracy.toFixed(1)}%</TableCell>
                     </TableRow>
-                 )}
-              </TableBody>
-            </Table>
+                  ))}
+                   {dashboardData.recentTests.length === 0 && (
+                      <TableRow>
+                         <TableCell colSpan={3} className="text-center text-muted-foreground">No tests recorded yet.</TableCell>
+                      </TableRow>
+                   )}
+                </TableBody>
+              </Table>
+           </div>
          </CardContent>
       </Card>
 
